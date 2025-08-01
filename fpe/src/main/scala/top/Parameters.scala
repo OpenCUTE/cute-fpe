@@ -6,7 +6,7 @@ import chisel3.util._
 // import org.chipsalliance.cde.config._
 // // import boom.exu.ygjk._
 // import boom.v3.util._
-
+import org.chipsalliance.cde.config._
 
 
 trait CUTEImplParameters{
