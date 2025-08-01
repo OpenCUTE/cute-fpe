@@ -194,423 +194,423 @@ int gen_data_file(DataFile* df, int bitsize, int dtype, int is_rand) {
     return 0; // 成功
 }
 
-int check_data_file(DataFile* df, int bitsize, int dtype, int gen_diff_file){
-    if (!df || !df->a || !df->b || !df->c || !df->d) return 1;
+// int check_data_file(DataFile* df, int bitsize, int dtype, int gen_diff_file){
+//     if (!df || !df->a || !df->b || !df->c || !df->d) return 1;
 
     
-    if(dtype == 0){
-        int size = bitsize / 8;
-        int8_t* a = (int8_t*)malloc(size * sizeof(int8_t));
-        int8_t* b = (int8_t*)malloc(size * sizeof(int8_t));
-        int32_t* c = (int32_t*)malloc(sizeof(int32_t));
-        int32_t* d = (int32_t*)malloc(sizeof(int32_t));
-
-        df->a->read_int8_array_from_file(a, size, 1);
-        df->b->read_int8_array_from_file(b, size, 1);
-        df->c->read_int32_array_from_file(c, 1, 1);
-        df->d->read_int32_array_from_file(d, 1, 1);
-
-        int32_t check_result = c[0];
-        int32_t undercheck_result = d[0];
-
-        for (int i = 0; i < size; ++i) {
-            check_result += (int32_t)a[i] * (int32_t)b[i];
-        }
-
-        free(a);
-        free(b);
-        free(c);
-        free(d);
-
-        if(check_result == undercheck_result){
-            return 0; // 成功
-        }
-        printf("Check       Result: %d\n", check_result);
-        printf("Under Check Result: %d\n", undercheck_result);
-        printf("\n");
-    }
-    else if(dtype == 1){
-        int size = bitsize / 16;
-        int16_t* a = (int16_t*)malloc(size * sizeof(int16_t));
-        int16_t* b = (int16_t*)malloc(size * sizeof(int16_t));
-        int32_t* c = (int32_t*)malloc(sizeof(int32_t));
-        int32_t* d = (int32_t*)malloc(sizeof(int32_t));
-
-        df->a->read_int16_array_from_file(a, size, 1);
-        df->b->read_int16_array_from_file(b, size, 1);
-        df->c->read_int32_array_from_file(c, 1, 1);
-        df->d->read_int32_array_from_file(d, 1, 1);
-
-        float check_result = 0;
-        float file_result = *((float*)&d[0]);
-
-        float add_float_max = my_float_abs(*((float*)&c[0]));
-
-        for (int i = 0; i < size; ++i) {
-            __fp16 temp_a = *((__fp16*)&a[i]);
-            __fp16 temp_b = *((__fp16*)&b[i]);
-            // check_result += (float)(temp_a * temp_b);
-            float temp_mul = ((float)temp_a) * ((float)temp_b); // 计算FP16乘积
-            check_result += temp_mul; // 将FP16乘积加到总和中
-            if (my_float_abs(temp_mul) > add_float_max) {
-                add_float_max = my_float_abs(temp_mul);
-            }
-        }
-
-        check_result += *((float*)&c[0]); // 将int32_t转换为float
-
-        int32_t* d_new = (int32_t*)malloc(sizeof(int32_t));
-        d_new[0] = mymac(a, b, c, size, dtype);
-
-        float undercheck_result = *((float*)&d_new[0]);
-        float new_diff_percent = (check_result - undercheck_result) / add_float_max;
-
-        int32_t exception = get_exceptioncode(check_result);
-        int32_t undercheck_exception = get_exceptioncode(undercheck_result);
-
-        // 全0特殊情况，diff_percent为0，只检查输出结果是不是0
-        if(add_float_max == 0){
-            if(undercheck_result != 0){
-                printf("Check       Result: %f\n", check_result);
-                printf("Under Check Result: %f\n", undercheck_result);
-
-                free(a);
-                free(b);
-                free(c);
-                free(d);
-                free(d_new);
-                return 2;
-            }
-
-            free(a);
-            free(b);
-            free(c);
-            free(d);
-            free(d_new);
-            return 0;
-        }
-
-        // 检查异常码是否一致
-        if(exception != 0){
-            if(exception != undercheck_exception){
-                printf("Check       Result: %f\n", check_result);
-                printf("Under Check Result: %f\n", undercheck_result);
-                printf("Exception code mismatch: %d vs %d\n", exception, undercheck_exception);
-
-                free(a);
-                free(b);
-                free(c);
-                free(d);
-                free(d_new);
-                return 2;
-            }
-
-            free(a);
-            free(b);
-            free(c);
-            free(d);
-            free(d_new);
-            return 3;
-        }
-
-        if((new_diff_percent > NEW_DIFF_PERCENT || new_diff_percent < -NEW_DIFF_PERCENT)&& gen_diff_file == 1){
-            FILE* fp = fopen("diff_fp16.txt", "w");
-            if(fp){
-                fprintf(fp, "a\n");
-                for(int i = 0; i < 2 * size; i++){
-                    fprintf(fp, "%.8f\n", *(float*)&a[i]);
-                }
-                fprintf(fp, "\n");
-                fprintf(fp, "b\n");
-                for(int i = 0; i < 2 * size; i++){
-                    fprintf(fp, "%.8f\n", *(float*)&b[i]);
-                }
-                fprintf(fp, "\n");
-                fprintf(fp, "c\n");
-                fprintf(fp, "%.8f\n", *(float*)&c[0]);
-
-                fprintf(fp, "\n");
-                fprintf(fp, "undercheck\n");
-                fprintf(fp, "%.8f\n", *(float*)&d[0]);
-
-                fprintf(fp, "\n");
-                fprintf(fp, "golden\n");
-                fprintf(fp, "%.8f\n", check_result);
-            }
-            fclose(fp);
-        }
-
-
-        if(new_diff_percent > NEW_DIFF_PERCENT || new_diff_percent < -NEW_DIFF_PERCENT){
-            printf("Check       Result: %a\n", check_result);
-            printf("Under Check Result: %a\n", undercheck_result);
-            printf("new_diff_percent: %f\n", new_diff_percent);
-
-            free(a);
-            free(b);
-            free(c);
-            free(d);
-            free(d_new);
-            return 2;
-        }
-    }
-    else if(dtype == 2){
-        int size = bitsize / 16;
-        int16_t* a = (int16_t*)malloc(size * sizeof(int16_t));
-        int16_t* b = (int16_t*)malloc(size * sizeof(int16_t));
-        int32_t* c = (int32_t*)malloc(sizeof(int32_t));
-        int32_t* d = (int32_t*)malloc(sizeof(int32_t));
-
-        df->a->read_int16_array_from_file(a, size, 1);
-        df->b->read_int16_array_from_file(b, size, 1);
-        df->c->read_int32_array_from_file(c, 1, 1);
-        df->d->read_int32_array_from_file(d, 1, 1);
-
-        double check_result_double = 0;
-        float file_result = *((float*)&d[0]);
-
-        double add_float_max = (double)my_float_abs(*((float*)&c[0]));
-
-        for (int i = 0; i < size; ++i) {
-            int32_t temp_int_a = (int32_t)a[i] << 16; // 将int16_t转换为int32_t
-            int32_t temp_int_b = (int32_t)b[i] << 16;
-            float temp_a = *((float*)&temp_int_a); // 将int32_t转换为float
-            float temp_b = *((float*)&temp_int_b);
-            double temp_mul = (double)temp_a * (double)temp_b; // 计算BF16乘积
-            check_result_double += temp_mul; // 将FP16乘积加到总和中
-            if (my_double_abs(temp_mul) > add_float_max) {
-                add_float_max = my_double_abs(temp_mul);
-            }
-        }
-
-        check_result_double += (double)*((float*)&c[0]); // 将int32_t转换为float
-        float check_result = (float)check_result_double; // 将double转换为float
-
-        int32_t* d_new = (int32_t*)malloc(sizeof(int32_t));
-        d_new[0] = mymac(a, b, c, size, dtype);
-
-        float undercheck_result = *((float*)&d_new[0]);
-        float new_diff_percent = (check_result - undercheck_result) / add_float_max;
-
-        int32_t exception = get_exceptioncode(check_result);
-        int32_t undercheck_exception = get_exceptioncode(undercheck_result);
-
-        // 全0特殊情况，diff_percent为0，只检查输出结果是不是0
-        if(add_float_max == 0){
-            if(undercheck_result != 0){
-                printf("Check       Result: %f\n", check_result);
-                printf("Under Check Result: %f\n", undercheck_result);
-
-                free(a);
-                free(b);
-                free(c);
-                free(d);
-                free(d_new);
-                return 2;
-            }
-
-            free(a);
-            free(b);
-            free(c);
-            free(d);
-            free(d_new);
-            return 0;
-        }
-
-        // 检查异常码是否一致
-        if(exception != 0){
-            if(exception != undercheck_exception){
-                printf("Check       Result: %f\n", check_result);
-                printf("Under Check Result: %f\n", undercheck_result);
-                printf("Exception code mismatch: %d vs %d\n", exception, undercheck_exception);
-
-                free(a);
-                free(b);
-                free(c);
-                free(d);
-                free(d_new);
-                return 2;
-            }
-
-            free(a);
-            free(b);
-            free(c);
-            free(d);
-            free(d_new);
-            return 3;
-        }
-
-        if((new_diff_percent > NEW_DIFF_PERCENT || new_diff_percent < -NEW_DIFF_PERCENT) && gen_diff_file == 1){
-            FILE* fp = fopen("diff_bf16.txt", "w");
-            if(fp){
-                fprintf(fp, "a\n");
-                for(int i = 0; i < 2 * size; i++){
-                    fprintf(fp, "%.8f\n", *(float*)&a[i]);
-                }
-                fprintf(fp, "\n");
-                fprintf(fp, "b\n");
-                for(int i = 0; i < 2 * size; i++){
-                    fprintf(fp, "%.8f\n", *(float*)&b[i]);
-                }
-                fprintf(fp, "\n");
-                fprintf(fp, "c\n");
-                fprintf(fp, "%.8f\n", *(float*)&c[0]);
-
-                fprintf(fp, "\n");
-                fprintf(fp, "undercheck\n");
-                fprintf(fp, "%.8f\n", *(float*)&d[0]);
-
-                fprintf(fp, "\n");
-                fprintf(fp, "golden\n");
-                fprintf(fp, "%.8f\n", check_result);
-            }
-            fclose(fp);
-        }
-
-        if(new_diff_percent > NEW_DIFF_PERCENT || new_diff_percent < -NEW_DIFF_PERCENT){
-            printf("Check       Result: %f\n", check_result);
-            printf("Under Check Result: %f\n", undercheck_result);
-            printf("new_diff_percent: %f\n", new_diff_percent);
-
-            free(a);
-            free(b);
-            free(c);
-            free(d);
-            free(d_new);
-            return 2;
-        }
-    }
-    else if(dtype == 3){
-        int size = bitsize / 32;
-        int32_t* a = (int32_t*)malloc(size * sizeof(int32_t));
-        int32_t* b = (int32_t*)malloc(size * sizeof(int32_t));
-        int32_t* c = (int32_t*)malloc(sizeof(int32_t));
-        int32_t* d = (int32_t*)malloc(sizeof(int32_t));
-
-        df->a->read_int32_array_from_file(a, size, 1);
-        df->b->read_int32_array_from_file(b, size, 1);
-        df->c->read_int32_array_from_file(c, 1, 1);
-        df->d->read_int32_array_from_file(d, 1, 1);
-
-
-        double check_result_double = 0;
-        float file_result = *((float*)&d[0]);
-
-        double add_float_max = (double)my_float_abs(*((float*)&c[0]));
-
-        for (int i = 0; i < size; ++i) {
-            int32_t temp_int_a = a[i] & 0xFFFFE000; // 将int16_t转换为int32_t
-            int32_t temp_int_b = b[i] & 0xFFFFE000;
-            float temp_a = *((float*)&temp_int_a); // 将int32_t转换为float
-            float temp_b = *((float*)&temp_int_b);
-            double temp_mul = (double)temp_a * (double)temp_b; // 计算BF16乘积
-            check_result_double += temp_mul; // 将FP16乘积加到总和中
-            if (my_double_abs(temp_mul) > add_float_max) {
-                add_float_max = my_double_abs(temp_mul);
-            }
-        }
-
-        check_result_double += (double)*((float*)&c[0]); // 将int32_t转换为float
-        float check_result = (float)check_result_double; // 将double转换为float
-
-        int32_t* d_new = (int32_t*)malloc(sizeof(int32_t));
-        d_new[0] = mymac(a, b, c, size, dtype);
-
-        float undercheck_result = *((float*)&d_new[0]);
-        float new_diff_percent = (check_result - undercheck_result) / add_float_max;
-
-        int32_t exception = get_exceptioncode(check_result);
-        int32_t undercheck_exception = get_exceptioncode(undercheck_result);
-
-        // 全0特殊情况，diff_percent为0，只检查输出结果是不是0
-        if(add_float_max == 0){
-            if(undercheck_result != 0){
-                printf("Check       Result: %f\n", check_result);
-                printf("Under Check Result: %f\n", undercheck_result);
-
-                free(a);
-                free(b);
-                free(c);
-                free(d);
-                free(d_new);
-                return 2;
-            }
-
-            free(a);
-            free(b);
-            free(c);
-            free(d);
-            free(d_new);
-            return 0;
-        }
-
-        // 检查异常码是否一致
-        if(exception != 0){
-            if(exception != undercheck_exception){
-                printf("Check       Result: %f\n", check_result);
-                printf("Under Check Result: %f\n", undercheck_result);
-                printf("Exception code mismatch: %d vs %d\n", exception, undercheck_exception);
-
-                free(a);
-                free(b);
-                free(c);
-                free(d);
-                free(d_new);
-                return 2;
-            }
-
-            free(a);
-            free(b);
-            free(c);
-            free(d);
-            free(d_new);
-            return 3;
-        }
-
-        if((new_diff_percent > NEW_DIFF_PERCENT || new_diff_percent < NEW_DIFF_PERCENT) && gen_diff_file == 1){
-            FILE* fp = fopen("diff_tf32.txt", "w");
-            if(fp){
-                fprintf(fp, "a\n");
-                for(int i = 0; i < 2 * size; i++){
-                    fprintf(fp, "%.8f\n", *(float*)&a[i]);
-                }
-                fprintf(fp, "\n");
-                fprintf(fp, "b\n");
-                for(int i = 0; i < 2 * size; i++){
-                    fprintf(fp, "%.8f\n", *(float*)&b[i]);
-                }
-                fprintf(fp, "\n");
-                fprintf(fp, "c\n");
-                fprintf(fp, "%.8f\n", *(float*)&c[0]);
-
-                fprintf(fp, "\n");
-                fprintf(fp, "undercheck\n");
-                fprintf(fp, "%.8f\n", *(float*)&d[0]);
-
-                fprintf(fp, "\n");
-                fprintf(fp, "golden\n");
-                fprintf(fp, "%.8f\n", check_result);
-            }
-            fclose(fp);
-        }
-
-        if(new_diff_percent > NEW_DIFF_PERCENT || new_diff_percent < -NEW_DIFF_PERCENT){
-            printf("Check       Result: %f\n", check_result);
-            printf("Under Check Result: %f\n", undercheck_result);
-            printf("new_diff_percent: %f\n", new_diff_percent);
-
-            free(a);
-            free(b);
-            free(c);
-            free(d);
-            free(d_new);
-            return 2;
-        }
-    }
+//     if(dtype == 0){
+//         int size = bitsize / 8;
+//         int8_t* a = (int8_t*)malloc(size * sizeof(int8_t));
+//         int8_t* b = (int8_t*)malloc(size * sizeof(int8_t));
+//         int32_t* c = (int32_t*)malloc(sizeof(int32_t));
+//         int32_t* d = (int32_t*)malloc(sizeof(int32_t));
+
+//         df->a->read_int8_array_from_file(a, size, 1);
+//         df->b->read_int8_array_from_file(b, size, 1);
+//         df->c->read_int32_array_from_file(c, 1, 1);
+//         df->d->read_int32_array_from_file(d, 1, 1);
+
+//         int32_t check_result = c[0];
+//         int32_t undercheck_result = d[0];
+
+//         for (int i = 0; i < size; ++i) {
+//             check_result += (int32_t)a[i] * (int32_t)b[i];
+//         }
+
+//         free(a);
+//         free(b);
+//         free(c);
+//         free(d);
+
+//         if(check_result == undercheck_result){
+//             return 0; // 成功
+//         }
+//         printf("Check       Result: %d\n", check_result);
+//         printf("Under Check Result: %d\n", undercheck_result);
+//         printf("\n");
+//     }
+//     else if(dtype == 1){
+//         int size = bitsize / 16;
+//         int16_t* a = (int16_t*)malloc(size * sizeof(int16_t));
+//         int16_t* b = (int16_t*)malloc(size * sizeof(int16_t));
+//         int32_t* c = (int32_t*)malloc(sizeof(int32_t));
+//         int32_t* d = (int32_t*)malloc(sizeof(int32_t));
+
+//         df->a->read_int16_array_from_file(a, size, 1);
+//         df->b->read_int16_array_from_file(b, size, 1);
+//         df->c->read_int32_array_from_file(c, 1, 1);
+//         df->d->read_int32_array_from_file(d, 1, 1);
+
+//         float check_result = 0;
+//         float file_result = *((float*)&d[0]);
+
+//         float add_float_max = my_float_abs(*((float*)&c[0]));
+
+//         for (int i = 0; i < size; ++i) {
+//             __fp16 temp_a = *((__fp16*)&a[i]);
+//             __fp16 temp_b = *((__fp16*)&b[i]);
+//             // check_result += (float)(temp_a * temp_b);
+//             float temp_mul = ((float)temp_a) * ((float)temp_b); // 计算FP16乘积
+//             check_result += temp_mul; // 将FP16乘积加到总和中
+//             if (my_float_abs(temp_mul) > add_float_max) {
+//                 add_float_max = my_float_abs(temp_mul);
+//             }
+//         }
+
+//         check_result += *((float*)&c[0]); // 将int32_t转换为float
+
+//         int32_t* d_new = (int32_t*)malloc(sizeof(int32_t));
+//         d_new[0] = mymac(a, b, c, size, dtype);
+
+//         float undercheck_result = *((float*)&d_new[0]);
+//         float new_diff_percent = (check_result - undercheck_result) / add_float_max;
+
+//         int32_t exception = get_exceptioncode(check_result);
+//         int32_t undercheck_exception = get_exceptioncode(undercheck_result);
+
+//         // 全0特殊情况，diff_percent为0，只检查输出结果是不是0
+//         if(add_float_max == 0){
+//             if(undercheck_result != 0){
+//                 printf("Check       Result: %f\n", check_result);
+//                 printf("Under Check Result: %f\n", undercheck_result);
+
+//                 free(a);
+//                 free(b);
+//                 free(c);
+//                 free(d);
+//                 free(d_new);
+//                 return 2;
+//             }
+
+//             free(a);
+//             free(b);
+//             free(c);
+//             free(d);
+//             free(d_new);
+//             return 0;
+//         }
+
+//         // 检查异常码是否一致
+//         if(exception != 0){
+//             if(exception != undercheck_exception){
+//                 printf("Check       Result: %f\n", check_result);
+//                 printf("Under Check Result: %f\n", undercheck_result);
+//                 printf("Exception code mismatch: %d vs %d\n", exception, undercheck_exception);
+
+//                 free(a);
+//                 free(b);
+//                 free(c);
+//                 free(d);
+//                 free(d_new);
+//                 return 2;
+//             }
+
+//             free(a);
+//             free(b);
+//             free(c);
+//             free(d);
+//             free(d_new);
+//             return 3;
+//         }
+
+//         if((new_diff_percent > NEW_DIFF_PERCENT || new_diff_percent < -NEW_DIFF_PERCENT)&& gen_diff_file == 1){
+//             FILE* fp = fopen("diff_fp16.txt", "w");
+//             if(fp){
+//                 fprintf(fp, "a\n");
+//                 for(int i = 0; i < 2 * size; i++){
+//                     fprintf(fp, "%.8f\n", *(float*)&a[i]);
+//                 }
+//                 fprintf(fp, "\n");
+//                 fprintf(fp, "b\n");
+//                 for(int i = 0; i < 2 * size; i++){
+//                     fprintf(fp, "%.8f\n", *(float*)&b[i]);
+//                 }
+//                 fprintf(fp, "\n");
+//                 fprintf(fp, "c\n");
+//                 fprintf(fp, "%.8f\n", *(float*)&c[0]);
+
+//                 fprintf(fp, "\n");
+//                 fprintf(fp, "undercheck\n");
+//                 fprintf(fp, "%.8f\n", *(float*)&d[0]);
+
+//                 fprintf(fp, "\n");
+//                 fprintf(fp, "golden\n");
+//                 fprintf(fp, "%.8f\n", check_result);
+//             }
+//             fclose(fp);
+//         }
+
+
+//         if(new_diff_percent > NEW_DIFF_PERCENT || new_diff_percent < -NEW_DIFF_PERCENT){
+//             printf("Check       Result: %a\n", check_result);
+//             printf("Under Check Result: %a\n", undercheck_result);
+//             printf("new_diff_percent: %f\n", new_diff_percent);
+
+//             free(a);
+//             free(b);
+//             free(c);
+//             free(d);
+//             free(d_new);
+//             return 2;
+//         }
+//     }
+//     else if(dtype == 2){
+//         int size = bitsize / 16;
+//         int16_t* a = (int16_t*)malloc(size * sizeof(int16_t));
+//         int16_t* b = (int16_t*)malloc(size * sizeof(int16_t));
+//         int32_t* c = (int32_t*)malloc(sizeof(int32_t));
+//         int32_t* d = (int32_t*)malloc(sizeof(int32_t));
+
+//         df->a->read_int16_array_from_file(a, size, 1);
+//         df->b->read_int16_array_from_file(b, size, 1);
+//         df->c->read_int32_array_from_file(c, 1, 1);
+//         df->d->read_int32_array_from_file(d, 1, 1);
+
+//         double check_result_double = 0;
+//         float file_result = *((float*)&d[0]);
+
+//         double add_float_max = (double)my_float_abs(*((float*)&c[0]));
+
+//         for (int i = 0; i < size; ++i) {
+//             int32_t temp_int_a = (int32_t)a[i] << 16; // 将int16_t转换为int32_t
+//             int32_t temp_int_b = (int32_t)b[i] << 16;
+//             float temp_a = *((float*)&temp_int_a); // 将int32_t转换为float
+//             float temp_b = *((float*)&temp_int_b);
+//             double temp_mul = (double)temp_a * (double)temp_b; // 计算BF16乘积
+//             check_result_double += temp_mul; // 将FP16乘积加到总和中
+//             if (my_double_abs(temp_mul) > add_float_max) {
+//                 add_float_max = my_double_abs(temp_mul);
+//             }
+//         }
+
+//         check_result_double += (double)*((float*)&c[0]); // 将int32_t转换为float
+//         float check_result = (float)check_result_double; // 将double转换为float
+
+//         int32_t* d_new = (int32_t*)malloc(sizeof(int32_t));
+//         d_new[0] = mymac(a, b, c, size, dtype);
+
+//         float undercheck_result = *((float*)&d_new[0]);
+//         float new_diff_percent = (check_result - undercheck_result) / add_float_max;
+
+//         int32_t exception = get_exceptioncode(check_result);
+//         int32_t undercheck_exception = get_exceptioncode(undercheck_result);
+
+//         // 全0特殊情况，diff_percent为0，只检查输出结果是不是0
+//         if(add_float_max == 0){
+//             if(undercheck_result != 0){
+//                 printf("Check       Result: %f\n", check_result);
+//                 printf("Under Check Result: %f\n", undercheck_result);
+
+//                 free(a);
+//                 free(b);
+//                 free(c);
+//                 free(d);
+//                 free(d_new);
+//                 return 2;
+//             }
+
+//             free(a);
+//             free(b);
+//             free(c);
+//             free(d);
+//             free(d_new);
+//             return 0;
+//         }
+
+//         // 检查异常码是否一致
+//         if(exception != 0){
+//             if(exception != undercheck_exception){
+//                 printf("Check       Result: %f\n", check_result);
+//                 printf("Under Check Result: %f\n", undercheck_result);
+//                 printf("Exception code mismatch: %d vs %d\n", exception, undercheck_exception);
+
+//                 free(a);
+//                 free(b);
+//                 free(c);
+//                 free(d);
+//                 free(d_new);
+//                 return 2;
+//             }
+
+//             free(a);
+//             free(b);
+//             free(c);
+//             free(d);
+//             free(d_new);
+//             return 3;
+//         }
+
+//         if((new_diff_percent > NEW_DIFF_PERCENT || new_diff_percent < -NEW_DIFF_PERCENT) && gen_diff_file == 1){
+//             FILE* fp = fopen("diff_bf16.txt", "w");
+//             if(fp){
+//                 fprintf(fp, "a\n");
+//                 for(int i = 0; i < 2 * size; i++){
+//                     fprintf(fp, "%.8f\n", *(float*)&a[i]);
+//                 }
+//                 fprintf(fp, "\n");
+//                 fprintf(fp, "b\n");
+//                 for(int i = 0; i < 2 * size; i++){
+//                     fprintf(fp, "%.8f\n", *(float*)&b[i]);
+//                 }
+//                 fprintf(fp, "\n");
+//                 fprintf(fp, "c\n");
+//                 fprintf(fp, "%.8f\n", *(float*)&c[0]);
+
+//                 fprintf(fp, "\n");
+//                 fprintf(fp, "undercheck\n");
+//                 fprintf(fp, "%.8f\n", *(float*)&d[0]);
+
+//                 fprintf(fp, "\n");
+//                 fprintf(fp, "golden\n");
+//                 fprintf(fp, "%.8f\n", check_result);
+//             }
+//             fclose(fp);
+//         }
+
+//         if(new_diff_percent > NEW_DIFF_PERCENT || new_diff_percent < -NEW_DIFF_PERCENT){
+//             printf("Check       Result: %f\n", check_result);
+//             printf("Under Check Result: %f\n", undercheck_result);
+//             printf("new_diff_percent: %f\n", new_diff_percent);
+
+//             free(a);
+//             free(b);
+//             free(c);
+//             free(d);
+//             free(d_new);
+//             return 2;
+//         }
+//     }
+//     else if(dtype == 3){
+//         int size = bitsize / 32;
+//         int32_t* a = (int32_t*)malloc(size * sizeof(int32_t));
+//         int32_t* b = (int32_t*)malloc(size * sizeof(int32_t));
+//         int32_t* c = (int32_t*)malloc(sizeof(int32_t));
+//         int32_t* d = (int32_t*)malloc(sizeof(int32_t));
+
+//         df->a->read_int32_array_from_file(a, size, 1);
+//         df->b->read_int32_array_from_file(b, size, 1);
+//         df->c->read_int32_array_from_file(c, 1, 1);
+//         df->d->read_int32_array_from_file(d, 1, 1);
+
+
+//         double check_result_double = 0;
+//         float file_result = *((float*)&d[0]);
+
+//         double add_float_max = (double)my_float_abs(*((float*)&c[0]));
+
+//         for (int i = 0; i < size; ++i) {
+//             int32_t temp_int_a = a[i] & 0xFFFFE000; // 将int16_t转换为int32_t
+//             int32_t temp_int_b = b[i] & 0xFFFFE000;
+//             float temp_a = *((float*)&temp_int_a); // 将int32_t转换为float
+//             float temp_b = *((float*)&temp_int_b);
+//             double temp_mul = (double)temp_a * (double)temp_b; // 计算BF16乘积
+//             check_result_double += temp_mul; // 将FP16乘积加到总和中
+//             if (my_double_abs(temp_mul) > add_float_max) {
+//                 add_float_max = my_double_abs(temp_mul);
+//             }
+//         }
+
+//         check_result_double += (double)*((float*)&c[0]); // 将int32_t转换为float
+//         float check_result = (float)check_result_double; // 将double转换为float
+
+//         int32_t* d_new = (int32_t*)malloc(sizeof(int32_t));
+//         d_new[0] = mymac(a, b, c, size, dtype);
+
+//         float undercheck_result = *((float*)&d_new[0]);
+//         float new_diff_percent = (check_result - undercheck_result) / add_float_max;
+
+//         int32_t exception = get_exceptioncode(check_result);
+//         int32_t undercheck_exception = get_exceptioncode(undercheck_result);
+
+//         // 全0特殊情况，diff_percent为0，只检查输出结果是不是0
+//         if(add_float_max == 0){
+//             if(undercheck_result != 0){
+//                 printf("Check       Result: %f\n", check_result);
+//                 printf("Under Check Result: %f\n", undercheck_result);
+
+//                 free(a);
+//                 free(b);
+//                 free(c);
+//                 free(d);
+//                 free(d_new);
+//                 return 2;
+//             }
+
+//             free(a);
+//             free(b);
+//             free(c);
+//             free(d);
+//             free(d_new);
+//             return 0;
+//         }
+
+//         // 检查异常码是否一致
+//         if(exception != 0){
+//             if(exception != undercheck_exception){
+//                 printf("Check       Result: %f\n", check_result);
+//                 printf("Under Check Result: %f\n", undercheck_result);
+//                 printf("Exception code mismatch: %d vs %d\n", exception, undercheck_exception);
+
+//                 free(a);
+//                 free(b);
+//                 free(c);
+//                 free(d);
+//                 free(d_new);
+//                 return 2;
+//             }
+
+//             free(a);
+//             free(b);
+//             free(c);
+//             free(d);
+//             free(d_new);
+//             return 3;
+//         }
+
+//         if((new_diff_percent > NEW_DIFF_PERCENT || new_diff_percent < NEW_DIFF_PERCENT) && gen_diff_file == 1){
+//             FILE* fp = fopen("diff_tf32.txt", "w");
+//             if(fp){
+//                 fprintf(fp, "a\n");
+//                 for(int i = 0; i < 2 * size; i++){
+//                     fprintf(fp, "%.8f\n", *(float*)&a[i]);
+//                 }
+//                 fprintf(fp, "\n");
+//                 fprintf(fp, "b\n");
+//                 for(int i = 0; i < 2 * size; i++){
+//                     fprintf(fp, "%.8f\n", *(float*)&b[i]);
+//                 }
+//                 fprintf(fp, "\n");
+//                 fprintf(fp, "c\n");
+//                 fprintf(fp, "%.8f\n", *(float*)&c[0]);
+
+//                 fprintf(fp, "\n");
+//                 fprintf(fp, "undercheck\n");
+//                 fprintf(fp, "%.8f\n", *(float*)&d[0]);
+
+//                 fprintf(fp, "\n");
+//                 fprintf(fp, "golden\n");
+//                 fprintf(fp, "%.8f\n", check_result);
+//             }
+//             fclose(fp);
+//         }
+
+//         if(new_diff_percent > NEW_DIFF_PERCENT || new_diff_percent < -NEW_DIFF_PERCENT){
+//             printf("Check       Result: %f\n", check_result);
+//             printf("Under Check Result: %f\n", undercheck_result);
+//             printf("new_diff_percent: %f\n", new_diff_percent);
+
+//             free(a);
+//             free(b);
+//             free(c);
+//             free(d);
+//             free(d_new);
+//             return 2;
+//         }
+//     }
 
     
-    return 0;
-}
+//     return 0;
+// }
 
 int main(int argc, char* argv[]){
     // 示例：创建数据文件并生成数据
@@ -676,48 +676,48 @@ int main(int argc, char* argv[]){
         delete df->d;
         free(df);
     }
-    DataFile* df2 = NULL;
-       if(dtype == 0){
-            df2 = create_data_file("int8_a.txt", "int8_b.txt", "int8_c.txt", "int8_d.txt", dtype, 0);
-        }
-        else if(dtype == 1){
-            df2 = create_data_file("fp16_a.txt", "fp16_b.txt", "fp16_c.txt", "fp16_d.txt", dtype, 0);
-        }
-        else if(dtype == 2){
-            df2 = create_data_file("bf16_a.txt", "bf16_b.txt", "bf16_c.txt", "bf16_d.txt", dtype, 0);
-        }
-        else{
-            df2 = create_data_file("tf32_a.txt", "tf32_b.txt", "tf32_c.txt", "tf32_d.txt", dtype, 0);
-        }
-    if (!df2) {
-        printf("Failed to create DataFile for reading\n");
-        return -1;
-    }
+    // DataFile* df2 = NULL;
+    //    if(dtype == 0){
+    //         df2 = create_data_file("int8_a.txt", "int8_b.txt", "int8_c.txt", "int8_d.txt", dtype, 0);
+    //     }
+    //     else if(dtype == 1){
+    //         df2 = create_data_file("fp16_a.txt", "fp16_b.txt", "fp16_c.txt", "fp16_d.txt", dtype, 0);
+    //     }
+    //     else if(dtype == 2){
+    //         df2 = create_data_file("bf16_a.txt", "bf16_b.txt", "bf16_c.txt", "bf16_d.txt", dtype, 0);
+    //     }
+    //     else{
+    //         df2 = create_data_file("tf32_a.txt", "tf32_b.txt", "tf32_c.txt", "tf32_d.txt", dtype, 0);
+    //     }
+    // if (!df2) {
+    //     printf("Failed to create DataFile for reading\n");
+    //     return -1;
+    // }
 
-    int error_number = 0;
-    int exception_number = 0;
-    for(int vecnum = 0; vecnum < total_vecnum; vecnum++){
-        int check = check_data_file(df2, bitsize, dtype, gen_diff); // 检查数据文件
-        if(check == 1){
-            printf("file is empty or not exist\n");
-        }
-        else if(check == 2){
-            printf("[%d]: Data check failed, results differ significantly.\n", vecnum);
-            // gen_data_file(df2, bitsize, dtype, is_rand, 1); // 重新生成数据
-            printf("\n");
-            error_number++;
-        }
-        else if(check == 3)
-            exception_number++;
-    }
+    // int error_number = 0;
+    // int exception_number = 0;
+    // for(int vecnum = 0; vecnum < total_vecnum; vecnum++){
+    //     int check = check_data_file(df2, bitsize, dtype, gen_diff); // 检查数据文件
+    //     if(check == 1){
+    //         printf("file is empty or not exist\n");
+    //     }
+    //     else if(check == 2){
+    //         printf("[%d]: Data check failed, results differ significantly.\n", vecnum);
+    //         // gen_data_file(df2, bitsize, dtype, is_rand, 1); // 重新生成数据
+    //         printf("\n");
+    //         error_number++;
+    //     }
+    //     else if(check == 3)
+    //         exception_number++;
+    // }
 
-    printf("Total errors: %d out of %d\n", error_number, total_vecnum);
-    printf("Total exceptions: %d out of %d\n", exception_number, total_vecnum);
+    // printf("Total errors: %d out of %d\n", error_number, total_vecnum);
+    // printf("Total exceptions: %d out of %d\n", exception_number, total_vecnum);
 
-    delete df2->a;
-    delete df2->b;
-    delete df2->c;
-    delete df2->d;
-    free(df2);
+    // delete df2->a;
+    // delete df2->b;
+    // delete df2->c;
+    // delete df2->d;
+    // free(df2);
     return 0;
 }
