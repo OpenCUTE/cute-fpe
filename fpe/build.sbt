@@ -1,4 +1,4 @@
-name := "top"
+name := "cute"
 
 // // crossScalaVersions := Seq("2.12.14", "2.13.10")
 import Tests._

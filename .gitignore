@@ -14,3 +14,4 @@ fpe/obj_dir
 fpe/project
 fpe/target
 fpe/top.v
+*.txt
