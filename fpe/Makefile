@@ -35,7 +35,7 @@ TOP = top
 
 #	0			1			2			3			4			5			6
 #	i8i8i32		f16f16f32	bf16bf16f32	tf32tf32f32	i8u8i32		u8i8i32		u8u8i32
-CHECKDATA_TYPE = 3
+CHECKDATA_TYPE ?= 3
 
 # Generate C++ in executable form
 VERILATOR_FLAGS += --cc --exe --top $(TOP)
