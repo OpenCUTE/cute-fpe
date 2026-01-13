@@ -1,5 +1,8 @@
 #include <stdio.h>
 #include <cstdint>
+#include <string>
+
+using namespace std;
 //mode 0是从头读/写，1是从上次读写位置继续读/写
 // #define FM_DEBUG
 
@@ -15,8 +18,9 @@ private:
 
 public:
     // 构造函数：设置文件名、数据类型，并创建空文件
-    FileIntArrayManager(const char* fname, DataType t = INT32, int create = 0) : dtype(t) {
-        snprintf(filename, sizeof(filename), "%s", fname);
+    FileIntArrayManager(string fname, DataType t = INT32, int create = 0) : dtype(t) {
+        // printf("%s\n", fname.c_str());
+        snprintf(filename, sizeof(filename), "%s", fname.c_str());
         FILE* fp = NULL;
         if(create){
             FILE* fp = fopen(filename, "w");
@@ -75,7 +79,7 @@ public:
 
     // 读int32数组
     int read_int32_array_from_file(int* arr, int max_size, int mode) {
-        if (filename[0] == '\0' || dtype != INT32) return -1;
+        if (filename[0] == '\0'/* || dtype != INT32*/) return -1;
         if (mode == 0) {
             if (fp_read) fclose(fp_read);
             fp_read = fopen(filename, "r");

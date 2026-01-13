@@ -57,6 +57,50 @@ int16_t generate_normalized_bf16() {
     return *(int16_t *)(&bf16_bits);
 }
 
+// 生成随机规格化__MXFP8 e4m3（8位）
+int8_t generate_normalized_e4m3() {
+    static std::random_device rd;
+    static std::mt19937 gen(rd());
+
+    std::uniform_int_distribution<uint16_t> sign_dist(0, 1);
+    std::uniform_int_distribution<uint16_t> bit7(0, 126); // e4m3只有低7位全1是NAN
+
+    uint16_t e4m3_bits = (sign_dist(gen) << 7) | bit7(gen);
+    return *(int8_t*)&e4m3_bits;
+}
+
+// 生成随机规格化__MXFP8 e5m2（8位）
+int8_t generate_normalized_e5m2() {
+    static std::random_device rd;
+    static std::mt19937 gen(rd());
+
+    std::uniform_int_distribution<uint16_t> sign_dist(0, 1);
+    std::uniform_int_distribution<uint16_t> exp_dist(0, 30);  // 避免31（无穷/NaN）
+    std::uniform_int_distribution<uint16_t> mantissa_dist(0, 3);
+
+    uint16_t sign = sign_dist(gen);
+    uint16_t exp = exp_dist(gen);
+    uint16_t mantissa = mantissa_dist(gen);
+    uint16_t e5m2_bits = (sign << 7) | (exp << 2) | mantissa;
+    return *(int8_t*)&e5m2_bits;
+}
+
+int8_t generate_normalized_e8m0() {
+    static std::random_device rd;
+    static std::mt19937 gen(rd());
+
+    std::uniform_int_distribution<uint16_t> bit8(0, 254);
+    return bit8(gen);
+}
+
+int8_t generate_normalized_2e2m1() {
+    static std::random_device rd;
+    static std::mt19937 gen(rd());
+
+    std::uniform_int_distribution<uint16_t> bit8(0, 255);
+    return bit8(gen);
+}
+
 int gen_exception_fp16(int16_t* a, int16_t* b, int32_t* c, int size, int is_rand){
     return 0;
 };
@@ -64,5 +108,8 @@ int gen_exception_bf16(int16_t* a, int16_t* b, int32_t* c, int size, int is_rand
     return 0;
 };
 int gen_exception_tf32(int32_t* a, int32_t* b, int32_t* c, int size, int is_rand){
+    return 0;
+};
+int gen_exception_fp8 (int8_t* a, int8_t* b, int32_t* c, int size, int is_rand){
     return 0;
 };

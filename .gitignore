@@ -15,3 +15,4 @@ fpe/project
 fpe/target
 fpe/top.v
 *.txt
+ccode/gendata

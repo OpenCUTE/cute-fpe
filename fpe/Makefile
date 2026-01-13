@@ -33,8 +33,12 @@ endif
 
 TOP = top
 
-#	0			1			2			3			4			5			6
-#	i8i8i32		f16f16f32	bf16bf16f32	tf32tf32f32	i8u8i32		u8i8i32		u8u8i32
+#	0			1			2			3			4			5			6				  
+#	i8i8i32		f16f16f32	bf16bf16f32	tf32tf32f32	i8u8i32		u8i8i32		u8u8i32 
+
+#7			8			9		10			11			12
+#mxfp8e4m3  mxfp8e5m2	nvfp4	mxfp4		fpe4m3		fpe5m2
+
 CHECKDATA_TYPE ?= 3
 
 # Generate C++ in executable form
