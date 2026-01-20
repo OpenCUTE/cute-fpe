@@ -131,7 +131,7 @@ class FPScaleDecoder(implicit p: Parameters) extends CuteModule {
 class FVecDecoder(implicit p: Parameters) extends CuteModule {
     val io = IO(new Bundle{
         val in = Input(UInt(ReduceWidth.W))
-        val opcode = Input(UInt(4.W))   //0:Int8, 1:FP16, 2:BF16, 3:TF32, 4:UI8， 7,11：E4M3, 8,12:e5m2 9: NVFP4
+        val opcode = Input(UInt(4.W))   //0:Int8, 1:FP16, 2:BF16, 3:TF32, 4:UI8， 7,11：E4M3, 8,12:e5m2
         val out = Output(new FDecodeResult)
     })
 
@@ -354,10 +354,9 @@ class FPipe0Result(implicit p: Parameters) extends CuteBundle{
 }
 
 class FPipe1Result(implicit p: Parameters) extends CuteBundle{
+    val Product0 = Vec(ReduceWidth/16, SInt(23.W))
     val Product1 = Vec(ReduceWidth/16, SInt(23.W))
     val CMantissa = SInt(32.W)
-    // val Product0 = Vec(ReduceWidth/16 + 1, SInt(26.W)) //每个向量的尾数右移结果
-    val Product0 = Vec(ReduceWidth/16, SInt(23.W))
     val RightShiftVec = Vec((ReduceWidth/8) + 1, UInt(10.W))
     val FP4ReduceRes = Vec(ReduceWidth/4/16, SInt((10 + log2Ceil(16)).W))
     val MaxExp = UInt(10.W)
@@ -370,8 +369,8 @@ class FPipe1Result(implicit p: Parameters) extends CuteBundle{
 }
 
 class FPipe2Result(implicit p: Parameters) extends CuteBundle{
-    val ReduceRes0 = Vec(P3AddNum * P4AddNum, SInt((26 + log2Ceil(P2AddNum)).W))
-    val ReduceRes1 = Vec(P3AddNum * P4AddNum, SInt((26 + log2Ceil(P2AddNum)).W)) // ReduceRes0是尾数右移后的结果，ReduceRes1是Int8的结果
+    val ReduceRes0 = Vec(P3AddNum, SInt((26 + log2Ceil(P2AddNum)).W))
+    val ReduceRes1 = Vec(P3AddNum, SInt((26 + log2Ceil(P2AddNum)).W)) // ReduceRes0是尾数右移后的结果，ReduceRes1是Int8的结果
     val CMantissa = SInt(32.W) // C的尾数
     val MaxExp = UInt(10.W)
     val opcode = UInt(4.W)  //0:Int8, 1:FP16, 2:BF16, 3:TF32
@@ -381,8 +380,8 @@ class FPipe2Result(implicit p: Parameters) extends CuteBundle{
 
 class FPipe3Result(implicit p: Parameters) extends CuteBundle{
     // val ReduceRes = SInt(32.W) //归约计算结果
-    val ReduceRes0 = Vec(P4AddNum, SInt((32).W))
-    val ReduceRes1 = Vec(P4AddNum, SInt((32).W)) // ReduceRes0是尾数右移后的结果，ReduceRes1是Int8的结果
+    val ReduceRes0 = SInt((32).W)
+    val ReduceRes1 = SInt((32).W) // ReduceRes0是尾数右移后的结果，ReduceRes1是Int8的结果
     // val ReduceResFP4 = SInt(32.W)
     val CMantissa = SInt(32.W) // C的尾数
     val MaxExp = UInt(10.W)
@@ -837,11 +836,11 @@ class FReduceMACPipe2(implicit p: Parameters) extends CuteModule {
     // printf("Int8Product0:%x\n", Int8Product(0))
 
 
-    val SumResult0 = Wire(Vec(P3AddNum * P4AddNum, SInt((26 + log2Ceil(P2AddNum)).W)))
-    val SumResult1 = Wire(Vec(P3AddNum * P4AddNum, SInt((26 + log2Ceil(P2AddNum)).W)))
+    val SumResult0 = Wire(Vec(P3AddNum, SInt((26 + log2Ceil(P2AddNum)).W)))
+    val SumResult1 = Wire(Vec(P3AddNum, SInt((26 + log2Ceil(P2AddNum)).W)))
     // val SumResult0 = Wire(Vec(4, SInt(32.W)))
     // val SumResult1 = Wire(Vec(4, SInt(32.W)))
-    for(i <- 0 until P3AddNum * P4AddNum) {
+    for(i <- 0 until P3AddNum) {
         SumResult0(i) := ProductRShiftF.slice(i * P2AddNum, (i + 1) * P2AddNum).reduce(_ + _)
         SumResult1(i) := Int8Product.slice(i * P2AddNum, (i + 1) * P2AddNum).reduce(_ + _)
     }
@@ -868,21 +867,18 @@ class FReduceMACPipe3(implicit p: Parameters) extends CuteModule {
     // val ReduceResFP4 = Wire(SInt(32.W))
     // ReduceResFP4 := io.in.FP4ABShift.reduce(_ + _)
 
-    val SumResult0 = Wire(Vec(P3AddNum * P4AddNum, SInt((32 + 3).W)))
-    val SumResult1 = Wire(Vec(P3AddNum * P4AddNum, SInt((32).W)))
-    for(i <- 0 until P3AddNum * P4AddNum) {
+    val SumResult0 = Wire(Vec(P3AddNum, SInt((32 + 3).W)))
+    val SumResult1 = Wire(Vec(P3AddNum, SInt((32).W)))
+    for(i <- 0 until P3AddNum) {
         SumResult0(i) := Mux(io.in.opcode === 9.U || io.in.opcode === 10.U, io.in.FP4ABShift(i), Cat(io.in.ReduceRes0(i).pad(32), 0.U(3.W)).asSInt)
         SumResult1(i) := io.in.ReduceRes1(i).pad(32)
     }
 
-    for(i <- 0 until P4AddNum) {
-        if (i == 0) {
-            io.out.ReduceRes0(i) := (SumResult0.slice(i * P3AddNum, (i + 1) * P3AddNum).reduce(_ + _) + Mux(io.in.opcode === 9.U || io.in.opcode === 10.U, io.in.FP4ABShift(8), Cat(io.in.CMantissa, 0.U(3.W)).asSInt))(34, 3).asSInt
-        } else {
-            io.out.ReduceRes0(i) := (SumResult0.slice(i * P3AddNum, (i + 1) * P3AddNum).reduce(_ + _))(34, 3).asSInt
-        }
-        io.out.ReduceRes1(i) := SumResult1.slice(i * P3AddNum, (i + 1) * P3AddNum).reduce(_ + _)
-    }
+    
+    io.out.ReduceRes0 := (SumResult0.reduce(_ + _) + Mux(io.in.opcode === 9.U || io.in.opcode === 10.U, io.in.FP4ABShift(ReduceWidth / 4 / MinGroupSize), Cat(io.in.CMantissa, 0.U(3.W)).asSInt))(34, 3).asSInt
+    
+    io.out.ReduceRes1 := SumResult1.reduce(_ + _)
+
     if (DEBUG_FP8)
     {printf("CMantissa: %x\n", io.in.CMantissa)}
 
@@ -905,27 +901,24 @@ class FReduceMACPipe4(implicit p: Parameters) extends CuteModule {
 
     val ReduceResF = Wire(SInt(32.W))
     val ReduceResI = Wire(SInt(32.W))
-    val ReduceRes0 = Wire(SInt(32.W))
     val ReduceRes  = Wire(SInt(32.W))
-    val SumResult0 = Wire(Vec(P4AddNum, SInt((32).W)))
-    val SumResult1 = Wire(Vec(P4AddNum, SInt((32).W)))
-    for(i <- 0 until P4AddNum) {
-        SumResult0(i) := io.in.ReduceRes0(i).pad(32) //.pad(26 + log2Ceil(ReduceWidth/16))
-        SumResult1(i) := io.in.ReduceRes1(i).pad(32)
-    }
+    val SumResult0 = Wire(SInt((32).W))
+    val SumResult1 = Wire(SInt((32).W))
+    
+    SumResult0 := io.in.ReduceRes0.pad(32) //.pad(26 + log2Ceil(ReduceWidth/16))
+    SumResult1 := io.in.ReduceRes1.pad(32)
 
 
     ReduceRes := Mux(io.in.opcode === 0.U || io.in.opcode === 4.U || io.in.opcode === 5.U || io.in.opcode === 6.U || io.in.opcode === 7.U || io.in.opcode === 8.U || io.in.opcode === 11.U || io.in.opcode === 12.U, 
-        ReduceRes0 + SumResult1.reduce(_ + _).pad(32), ReduceRes0)
+        SumResult0 + SumResult1.pad(32), SumResult0)
 
     if (DEBUG_FP8 || DEBUG_FP4)
     {
-        printf("ReduceRes0:%x\n", ReduceRes0)
-        printf("SumResult1:%x\n", SumResult1(0))
+        printf("SumResult0:%x\n", SumResult0)
+        printf("SumResult1:%x\n", SumResult1)
         printf("ReduceRes:%x\n", ReduceRes)
     }
 
-    ReduceRes0 := SumResult0.reduce(_ + _)
     ReduceResF := ReduceRes
     ReduceResI := ReduceRes
 
@@ -1040,8 +1033,8 @@ class FReducePE(implicit p: Parameters) extends CuteModule {
         val AVector = Flipped(DecoupledIO(UInt(ReduceWidth.W)))
         val BVector = Flipped(DecoupledIO(UInt(ReduceWidth.W)))
         val CAdd    = Flipped(DecoupledIO(UInt(ResultWidth.W)))
-        val AScale  = Flipped(DecoupledIO(UInt((ReduceWidth/4/MinGroupSize * 8).W)))
-        val BScale  = Flipped(DecoupledIO(UInt((ReduceWidth/4/MinGroupSize * 8).W)))
+        val AScale  = Flipped(DecoupledIO(UInt((ReduceWidth/MinDataTypeWidth/MinGroupSize * ScaleElementWidth).W)))
+        val BScale  = Flipped(DecoupledIO(UInt((ReduceWidth/MinDataTypeWidth/MinGroupSize * ScaleElementWidth).W)))
         val DResult = DecoupledIO(UInt(ResultWidth.W))
         val opcode = Input(UInt(4.W))   //0:Int8, 1:FP16, 2:BF16, 3:TF32, 4:I8 * UI8, 5:UI8 * I8, 6:UI8 * UI8, 7:MXFP8E4M3, 8:MXFP8e5m2 9:NVFP4, 10:MXFP4, 11:FP8E4M3, 12:FP8E5M2
     })
@@ -1049,7 +1042,6 @@ class FReducePE(implicit p: Parameters) extends CuteModule {
     // for DEBUG
     val count = RegInit(0.U(32.W))
     count := count + 1.U
-    printf("Cycle count: %d\n", count)
 
     val pipe0 = Module(new FReduceMACPipe0)
     val pipe1 = Module(new FReduceMACPipe1)
@@ -1057,10 +1049,16 @@ class FReducePE(implicit p: Parameters) extends CuteModule {
     val pipe3 = Module(new FReduceMACPipe3)
     val pipe4 = Module(new FReduceMACPipe4)
 
-    // printf("io.AVector.bits: %x\n", io.AVector.bits)
-    // printf("io.BVector.bits: %x\n", io.BVector.bits)
-    // printf("op.AScale.bits[0]: %x\n", io.AScale.bits(7, 0))
-    // printf("op.BScale.bits[0]: %x\n", io.BScale.bits(7, 0))
+    if (DEBUG_FP8 || DEBUG_FP4) {
+        printf("Cycle count: %x\n", count)
+
+        printf("io.AVector.bits: %x\n", io.AVector.bits)
+        printf("io.BVector.bits: %x\n", io.BVector.bits)
+        printf("op.AScale.bits[0]: %x\n", io.AScale.bits(7, 0))
+        printf("op.BScale.bits[0]: %x\n", io.BScale.bits(7, 0))
+
+        printf("AScale: %x\n", io.AScale.bits)
+    }
 
 
     val PipeResRegValid = RegInit(VecInit(Seq.fill(6)(false.B)))
@@ -1070,8 +1068,8 @@ class FReducePE(implicit p: Parameters) extends CuteModule {
     val InputRegB = Reg(new FDecodeResult)
     val InputRegAFP4Vec = Reg(Vec(ReduceWidth/4, SInt(5.W)))
     val InputRegBFP4Vec = Reg(Vec(ReduceWidth/4, SInt(5.W)))
-    val InputRegAscale = Reg(Vec(ReduceWidth/4/MinGroupSize, UInt(8.W)))
-    val InputRegBscale = Reg(Vec(ReduceWidth/4/MinGroupSize, UInt(8.W)))
+    val InputRegAscale = Reg(Vec(ReduceWidth/MinDataTypeWidth/MinGroupSize, UInt(ScaleElementWidth.W)))
+    val InputRegBscale = Reg(Vec(ReduceWidth/MinDataTypeWidth/MinGroupSize, UInt(ScaleElementWidth.W)))
     val Pipe0ResReg = Reg(new FPipe0Result)
     val Pipe1ResReg = Reg(new FPipe1Result)
     val Pipe2ResReg = Reg(new FPipe2Result)
@@ -1117,7 +1115,6 @@ class FReducePE(implicit p: Parameters) extends CuteModule {
         scaleSum(i) := io.AScale.bits(i * 8 + 7, i * 8).asUInt.pad(10) + io.BScale.bits(i * 8 + 7, i * 8).asUInt.pad(10) - 254.U
     }
 
-    printf("AScale: %x\n", io.AScale.bits)
 
     when(InReady){
         when(ABCValid === 1.U){
