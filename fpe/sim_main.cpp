@@ -98,6 +98,10 @@ int check_sim(DataFile* df, int bitsize, int dtype, Vtop* top, int cycles, int t
     if (!df || !df->a || !df->b || !df->c || !df->d) {
         return 1;
     }
+    if (bitsize != 256 && bitsize != 512) {
+        printf("Unsupported bitsize: %d\n", bitsize);
+        return 1;
+    }
     int exception_error = 0;
     int data_error = 0;
 
@@ -129,12 +133,18 @@ int check_sim(DataFile* df, int bitsize, int dtype, Vtop* top, int cycles, int t
             df->a_scale->read_int32_array_from_file((int32_t *)a_scale, scale_size, 1);
             df->b_scale->read_int32_array_from_file((int32_t *)b_scale, scale_size, 1);
         }
+        // printf("a_scale[0]: %08x, b_scale[0]: %08x\n", a_scale[0], b_scale[0]);
         df->c->read_int32_array_from_file(c, 1, 1);
 
-
-        top->io_AScale_bits = (long unsigned int) a_scale[0] << 32 | (a_scale[1] & 0xFFFFFFFF);
-        // printf("AScale bits: %lx\n", top->io_AScale_bits);
-        top->io_BScale_bits = (long unsigned int) b_scale[0] << 32 | (b_scale[1] & 0xFFFFFFFF);
+        if (bitsize == 512) {
+            top->io_AScale_bits = (long unsigned int) a_scale[0] << 32 | (a_scale[1] & 0xFFFFFFFF);
+            // printf("AScale bits: %lx\n", top->io_AScale_bits);
+            top->io_BScale_bits = (long unsigned int) b_scale[0] << 32 | (b_scale[1] & 0xFFFFFFFF);
+        }
+        else {
+            top->io_AScale_bits = *(uint32_t *)a_scale;
+            top->io_BScale_bits = *(uint32_t *)b_scale;
+        }
         top->clock = 1;
         top->reset = 0;
         top->io_AVector_valid = 1;
