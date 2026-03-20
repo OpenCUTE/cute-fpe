@@ -1,5 +1,9 @@
 #include <stdio.h>
 #include <cstdint>
+#include <string>
+#include <cstring>
+
+using namespace std;
 //mode 0是从头读/写，1是从上次读写位置继续读/写
 // #define FM_DEBUG
 
@@ -15,14 +19,15 @@ private:
 
 public:
     // 构造函数：设置文件名、数据类型，并创建空文件
-    FileIntArrayManager(const char* fname, DataType t = INT32, int create = 0) : dtype(t) {
-        snprintf(filename, sizeof(filename), "%s", fname);
+    FileIntArrayManager(string fname, DataType t = INT32, int create = 0) : dtype(t) {
+        // printf("%s\n", fname.c_str());
+        snprintf(filename, sizeof(filename), "%s", fname.c_str());
         FILE* fp = NULL;
         if(create){
-            FILE* fp = fopen(filename, "w");
+            fp = fopen(filename, "w");
         }
         else{
-            FILE* fp = fopen(filename, "r");
+            fp = fopen(filename, "r");
         }
         
         if (fp) fclose(fp);
@@ -91,7 +96,8 @@ public:
         buf[8] = '\0';
         while (count < max_size && fread(buf, 1, 8, fp_read) == 8) {
             sscanf(buf, "%x", &arr[count]);
-            float temp_float = *((float*)&arr[count]);
+            float temp_float;
+            memcpy(&temp_float, &arr[count], sizeof(float));
             #ifdef FM_DEBUG
                 printf("count:%d read fp32: %#.6a\t, float: %e as float:%f\n", count, temp_float, temp_float, temp_float);
             #endif
@@ -134,8 +140,8 @@ public:
                 // #endif
             }
             else if(check_print_mode == 2){
-                int32_t temp_int32 = ((int32_t)arr[count]) << 16;
-                float temp_float = *((float*)&temp_int32);
+                // int32_t temp_int32 = ((int32_t)arr[count]) << 16;
+                // float temp_float = *((float*)&temp_int32);
                 #ifdef FM_DEBUG
                     // printf("count:%d read bf16: %04x, float: %f\n", count, arr[count], temp_float);
                     printf("count:%d read bf16: %#.2a\t, float: %e as float:%f\n", count, temp_float, temp_float, temp_float);
