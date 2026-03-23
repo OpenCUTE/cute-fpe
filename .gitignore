@@ -1,4 +1,3 @@
-*~
 target/
 /.bsp/
 /.idea/
@@ -16,3 +15,6 @@ fpe/target
 fpe/top.v
 *.txt
 ccode/gendata
+*.txt
+**.metals
+**.vscode
