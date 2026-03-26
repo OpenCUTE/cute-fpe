@@ -10,9 +10,15 @@ class RawFloatException extends Bundle {
     val is_zero = Bool()
   }
 
+  //class = 数据格式定义 ; object = 数据生成逻辑，class 定义“信号接口”，object 中的 def 定义“组合逻辑，把输入连到这些信号上”
+  //从硬件的角度来看的话，class RawFloat = 电路“接口”，fromUInt = 一个“组合逻辑模块”
+  //在scala中class A extends B意思是A 继承 B（A 是 B 的子类），这里表示RawFloat 是一种 Bundle（硬件信号集合）
+
+  //注意这个precision(pc)是指尾数宽度+前导1的长度总和
   class RawFloat(val expWidth: Int, val precision: Int) extends Bundle {
     val sign = Bool()
     val exp = SInt(expWidth.W)
+    //作为一个有符号数（即补码）进行存储尾数，以方便进行后需要的加减操作
     val signed_sig = SInt((precision + 1).W)
     val exception = new RawFloatException
   }
@@ -20,13 +26,22 @@ class RawFloatException extends Bundle {
   object RawFloat {
     // 不能用于e2m1和e4m3！这两个的异常值定义不同，e2m1没有异常值，e4m3只在0bx1111111时为NAN，指数全一为最大指数，但在这里会被处理成负数
     def fromUInt(x: UInt, expWidth: Int, pc: Int, E4M3: Boolean = false, E2M1: Boolean = false): RawFloat = {
+      //声明一个中间信号 fp，它是 RawFloat 结构，每个字段都是 wire，所以其是硬件连线，不是变量
       val fp = Wire(new RawFloat(expWidth, pc))
+      //.orR 是Chisel里的一个按位归约OR操作，即所有位全部或一下，如果全0（nz为0），则说明其为非规格数
+      //而如果我们进行与0进行比较的话，则会进行多bit的异或操作，包括边界：bit[expWidth + pc - 2 : pc - 1]
       val nz =  x(expWidth + pc - 2, pc - 1).orR
       val sign = x(expWidth + pc - 1)
+      //这个:=是chisel硬件连接，将x的最高位接到fp的sign中
       fp.sign := sign
       val bias = Wire(UInt(expWidth.W))
       bias := (1.U << (expWidth - 1)) - 1.U //
+      // “|”为按位或，即每一位都进行与操作，.asUInt是按位重新解释类型，把当前信号的bit原封不动的解释为UInt
+      //注意chisel默认是zero-extend，所以!nz = w'b___(!nz)
+      //且对于硬件相减，如果我们用小的数据减大的数据，我们采用回绕的方法，例如对于5位的无符号，00001 - 01111 = 10010 = 18（mod 32）
+      //如果我们此时按照有符号数去解释的话，则我们就可以知道其10010代表-14
       fp.exp := ((x(expWidth + pc - 2, pc - 1) | !nz).asUInt - bias).asSInt
+      //cat(concatenate):表示按位拼接。0.U(1.W)这里添加了一个额外的0，其用来表示正数
       val sig = Cat(0.U(1.W), nz, x(pc - 2, 0))
     //   fp.signed_sig := Mux(sign, -sig.asSInt.pad(pc + 1), sig.asSInt.pad(pc + 1))
       fp.signed_sig := sig.asSInt
@@ -37,10 +52,12 @@ class RawFloatException extends Bundle {
     //   }
     //   else 
       if (E2M1) {
+        //一个硬件里的 1-bit 常量 0（Bool 类型）
         fp.exception.is_nan := false.B
         fp.exception.is_inf := false.B
       }
       else {
+        //andR是指所有位进行按位与；orR指所有位进行按位或
         fp.exception.is_nan := x(expWidth + pc - 2, pc - 1).andR && x(pc - 2, 0).orR
         fp.exception.is_inf := x(expWidth + pc - 2, pc - 1).andR && !x(pc - 2, 0).orR
       }
@@ -48,7 +65,7 @@ class RawFloatException extends Bundle {
       fp
     }
 
-    // e4m3单独处理，在计算时用5位表示exp
+    // e4m3单独处理，在计算时用5位表示exp，因为其在指数全1的情况下也不一定为异常值
     def frome4m3(x: UInt): RawFloat = {
         val fp = Wire(new RawFloat(5, 4))
         val nz =  x(4 + 4 - 2, 4 - 1).orR
@@ -68,12 +85,16 @@ class RawFloatException extends Bundle {
     }
 }
 
+//这个模块依赖配置参数 p，p 会自动从外部传进来
 class FP4toint(implicit p: Parameters) extends CuteModule {   // 输出格式为xxxx.x，00001为0.5
     val io = IO(new Bundle{
+        //这是一个新输入的4-bit浮点数，我们用无符号整数来解释他
         val in = Input(UInt(4.W))
+        //输出一个5-bit的数据，我们用有符号整数来解释他
         val out = Output(SInt(5.W))
     })
 
+    //decode FP4
     val sign = io.in(3)
     val exp = io.in(2, 1)
     val mantissa = io.in(0)
@@ -92,9 +113,12 @@ class FP4toint(implicit p: Parameters) extends CuteModule {   // 输出格式为
     io.out := Mux(sign, -unsignedSig.asSInt, unsignedSig.asSInt)
 }
 
+//输入一个len位的数，输出他前面有多少个连续的0
 class CLZ(len: Int)(implicit p: Parameters) extends CuteModule {
 
   val inWidth = len
+  //(inWidth - 1).U: 把整数变成 UInt 常量; .getWidth: 表示这个数需要多少bit才能表示
+  //但是这样岂不是不能检测出全0的数值了？，因为位宽不够？
   val outWidth = (inWidth - 1).U.getWidth
 
   val io = IO(new Bundle() {
@@ -105,11 +129,13 @@ class CLZ(len: Int)(implicit p: Parameters) extends CuteModule {
   io.out := PriorityEncoder(io.in.asBools.reverse)
 }
 
+//？？？为什么这里的指数是10位的，而且向量数量是ReduceWidth/8，而不是/32？
 class FDecodeResult(implicit p: Parameters) extends CuteBundle{
     // val Int8Vec = Vec(ReduceWidth/8, UInt(9.W))
     val TF32Vec = Vec(ReduceWidth/8, new RawFloat(10, 11))
 }
 
+//因为这里是scale的填充，其认为当scale为e4m3的时候进行这个解码操作
 class FPScaleDecoder(implicit p: Parameters) extends CuteModule {
     val io = IO(new Bundle{
         val in = Input(Vec(ReduceWidth/4/MinGroupSize, UInt(8.W)))
@@ -120,6 +146,7 @@ class FPScaleDecoder(implicit p: Parameters) extends CuteModule {
         val Bits8  = io.in(i)
         val DecodeE4M3 = RawFloat.frome4m3(Bits8)
         val E4M3toTF32 = Wire(new RawFloat(8, 11))
+        //pad在chisel中表示高位补0，因为这里的scale为ue4m3
         E4M3toTF32.exp := DecodeE4M3.exp.pad(8)
         E4M3toTF32.signed_sig := DecodeE4M3.signed_sig
         E4M3toTF32.exception := DecodeE4M3.exception
@@ -145,6 +172,7 @@ class FVecDecoder(implicit p: Parameters) extends CuteModule {
         )
     }
 
+    //等价于for(i = 0; i < ReduceWidth/32; i++)
     for(i <- 0 until ReduceWidth/32){
         val Bits8  = io.in(8 * i + 7, 8 * i)
         val Bits16 = io.in(16 * i + 15, 16 * i)
@@ -257,6 +285,8 @@ class FVecDecoder(implicit p: Parameters) extends CuteModule {
     }
 }
 
+//逐bit比较（从高位到低位）→ 找最大指数
+//输出候选集合（part1）；把剩余bit交给下一阶段（part2）；提取已经确定的高位（part3）
 class CmpTreeP0Res(layers:Int, elemNum:Int, expWidth:Int)(implicit p: Parameters) extends CuteBundle{
     val part1   = UInt((elemNum).W)   //第6层mask（也就是mask(5)）,用于算后续的mask
     val part2   = Vec(expWidth - layers, UInt((elemNum).W)) //6层以后的数据传到下一层
@@ -269,31 +299,59 @@ class CmpTreeP0(layers:Int, elemNum:Int, expWidth:Int)(implicit p: Parameters) e
         val out   = Output(new CmpTreeP0Res(layers, elemNum, expWidth))
     })
 
+  //数据转置，将输入的元素转置
   // 生成 in_vec_0: 9组，每组ReduceWidth/16位
     val inVec0 = Wire(Vec(expWidth, UInt((elemNum).W)))
     for (j <- 0 until expWidth) {
+        /*
+        1、(0 until elemNum)：生成索引：0, 1, 2, ..., elemNum-1
+        2、.reverse：反转顺序：elemNum-1, ..., 2, 1, 0，这个索引决定i的顺序，即拼接顺序（现在变成了d0 c0 b0 a0）
+        3、.map(...)：i => io.in(i)(expWidth - 1 - j)：对每个元素取：第 i 个数的第 (expWidth - 1 - j) 位
+        4、Cat(Cat 的拼接顺序是“左边是高位，右边是低位”)：把这些 bit 拼接成一个 UInt：[ bit(elemNum-1) , bit(elemNum-2) , ... , bit(0) ]
+        例如按“数”排列（行优先）：
+            a2 a1 a0
+            b2 b1 b0
+            c2 c1 c0
+            d2 d1 d0
+        转换后按bit排列（列优先）：
+            inVec0(0) = d2 c2 b2 a2   ← MSB列
+            inVec0(1) = d1 c1 b1 a1
+            inVec0(2) = d0 c0 b0 a0   ← LSB列
+        */
+        //注意map是对于每个i单独执行一次，即我们做的是一个结构展开，每个i都做一次硬连线
         inVec0(j) := Cat((0 until elemNum).reverse.map(i => io.in(i)(expWidth - 1 - j)))
     }
 
-  // 生成 mask: 9组，每组ReduceWidth/16位
+    //从最高位开始，一位一位筛选：始终保留“当前仍有可能成为最大值”的那些元素。mask(i) = “经过前 i+1 位筛选后，还活着的候选集合”
+    // 生成 mask: 9组，每组ReduceWidth/16位，每一位 mask(i) 是一个 elemNum 位的bitmask
     val mask = Wire(Vec(layers, UInt((elemNum).W)))
+    //这一步我们是看最高位，如果存在1的话，则我们只保留有1的向量，如果不存在1，则我们全部保留下来
     mask(0) := Mux(inVec0(0) === 0.U, ~inVec0(0), inVec0(0))
     for (i <- 1 until layers) {
+        //上一轮筛选剩下的候选
         val prev = Wire(UInt((elemNum).W))
+        //当前bit位（第i位）的所有元素值
         val curr = Wire(UInt((elemNum).W))
         val prevandcurr = Wire(UInt((elemNum).W))
         prev := mask(i - 1)
         curr := inVec0(i)
+        //当前候选中，哪些元素在这一位是1，按位与
         prevandcurr := (prev & curr)
+        //情况1：候选中“有人这一位是1”，则保留这些更大的；情况2：如果这些候补中“没人这一位是1”，则保持原候选不变
         mask(i) := Mux(prevandcurr === 0.U, prev, prevandcurr)
     }
 
-  // 生成 out: 9位
+    //把前面筛选结果 → 转成最终输出格式（部分结果 + 中间状态）
+    // 生成 out: 9位
+    //part1：输出最终候选集合；io.out.part1 := mask(layers - 1)
     io.out.part1 := mask(layers - 1)
+
+    //part2：剩余bit（传给下一阶段），我前面只比较了layers 个bit（高位）
     for(i <- 0 until (expWidth - layers)){
         io.out.part2(i) := inVec0(i + layers)
     }
 
+    //part3：生成“已经确定的高位结果”，即把前面已经确定好的最大指数位给找出来
     val res = Wire(Vec(layers, UInt(1.W)))
     for(i <- 0 until layers){
         val bit = Wire(UInt((elemNum).W))
@@ -301,15 +359,20 @@ class CmpTreeP0(layers:Int, elemNum:Int, expWidth:Int)(implicit p: Parameters) e
         res(i) := Mux(bit === 0.U, 0.U, 1.U)
     }
 
+    //最后拼接成结果，从而使得Cat正好保持最大指数的顺序，这个k按照前面的(0 until layers)来进行排序的
+    //1、(0 until layers)生成K的序列 2、map是对每个元素都做同一个操作 3、k=>res(k)，即输入k→输出res(k)
     io.out.part3 := Cat((0 until layers).map(k => res(k)))
 }
 
+//CmpTreeP1 就是把 P0 没算完的部分继续算完，拼出完整的最大指数
+//算低位 + 拼完整结果
 class CmpTreeP1(layers : Int, elemNum:Int, expWidth:Int)(implicit p: Parameters) extends CuteModule {
     val io = IO(new Bundle {
         val in    = Input(new CmpTreeP0Res(layers, elemNum, expWidth))
         val out   = Output(UInt(expWidth.W))
     })
 
+    //继续生成 mask（低位筛选），和 P0 是完全同一个算法，只是接着做，相当于在中间切了一级流水而已
     val mask = Wire(Vec(expWidth - layers, UInt((elemNum).W)))
     for (i <- 0 until (expWidth - layers)) {
         val prev = Wire(UInt((elemNum).W))
@@ -325,6 +388,7 @@ class CmpTreeP1(layers : Int, elemNum:Int, expWidth:Int)(implicit p: Parameters)
         mask(i) := Mux(prevandcurr === 0.U, prev, prevandcurr)
     }
 
+    //生成低位结果 res
     val res = Wire(Vec(expWidth - layers, UInt(1.W)))
     for(i <- 0 until (expWidth - layers)){
         val bit = Wire(UInt(elemNum.W))
@@ -332,13 +396,16 @@ class CmpTreeP1(layers : Int, elemNum:Int, expWidth:Int)(implicit p: Parameters)
         res(i) := Mux(bit === 0.U, 0.U, 1.U)
     }
 
+    //拼接低位结果
     val partres = Wire(UInt((expWidth - layers).W))
     partres := Cat((0 until (expWidth - layers)).map(k => res(k)))
 
-  // 生成 out: 9位
+    // 生成 out: 9位
+    // 最终把高位结果和低位结果都拼接起来，就得到了最大的指数值
     io.out := Cat(io.in.part3, partres)
 }
 
+//流水线第0级（Pipe0）的“打包输出结构”
 class FPipe0Result(implicit p: Parameters) extends CuteBundle{
     val Product0 = Vec(ReduceWidth/16, SInt(23.W))
     val Product1 = Vec(ReduceWidth/16, SInt(23.W))
@@ -390,6 +457,8 @@ class FPipe3Result(implicit p: Parameters) extends CuteBundle{
 }
 
 // Pipe0的功能是并行完成{计算尾数乘积}和{求阶码最大值，计算右移位数}
+// 1、计算尾数乘积（Product0/Product1/FP4Product）
+// 2、求阶码最大值，并计算每个乘积需要右移的位数（RightShiftVec）
 class FReduceMACPipe0(implicit p: Parameters) extends CuteModule {
     val io = IO(new Bundle{
         val inA = Input(new FDecodeResult)
@@ -403,6 +472,7 @@ class FReduceMACPipe0(implicit p: Parameters) extends CuteModule {
         val out = Output(new FPipe0Result)
     })
 
+    //这里默认C为TF32
     val CDecode = RawFloat.fromUInt(io.inC, 8, 24)
 
     // FP4 scale 相乘
@@ -423,6 +493,7 @@ class FReduceMACPipe0(implicit p: Parameters) extends CuteModule {
     val FP4BScaleExceptionVec = Wire(Vec(ReduceWidth/4/MinGroupSize, new RawFloatException))
     val mxfp4AScaleExceptionVec = Wire(Vec(ReduceWidth/4/32, new RawFloatException))
     val mxfp4BScaleExceptionVec = Wire(Vec(ReduceWidth/4/32, new RawFloatException))
+    //将其初始化为0
     mxfp4AScaleExceptionVec := 0.U.asTypeOf(Vec(ReduceWidth/4/32, new RawFloatException))
     mxfp4BScaleExceptionVec := 0.U.asTypeOf(Vec(ReduceWidth/4/32, new RawFloatException))
     // mxfp4的scale为e8m0，255表示nan
@@ -430,14 +501,14 @@ class FReduceMACPipe0(implicit p: Parameters) extends CuteModule {
         mxfp4AScaleExceptionVec(i).is_nan := io.inAscale(i) === 255.U
         mxfp4BScaleExceptionVec(i).is_nan := io.inBscale(i) === 255.U
     }
-    // mxfp4block数量为nvfp4一半
+    // mxfp4block数量为nvfp4一半，这里认为普通 FP4（opcode != 10）每个元素有自己的 scale; 而MXFP4(块浮点)(opcode ==  10)则一组数据共享一个scale
     for (i <- 0 until ReduceWidth/4/MinGroupSize){
         FP4AScaleExceptionVec(i) := Mux(io.opcode === 10.U, mxfp4AScaleExceptionVec(i / 2), FP4AScaleDecoder.io.out(i).exception)
         FP4BScaleExceptionVec(i) := Mux(io.opcode === 10.U, mxfp4BScaleExceptionVec(i / 2), FP4BScaleDecoder.io.out(i).exception)
     }
 
     io.out.scaleFP(ReduceWidth/4/MinGroupSize).sign := CDecode.sign
-    io.out.scaleFP(ReduceWidth/4/MinGroupSize).exp := CDecode.exp.pad(9) + 255.S
+    io.out.scaleFP(ReduceWidth/4/MinGroupSize).exp := CDecode.exp.pad(9) + 255.S//这里为什么加255？
     if (DEBUG_FP4) {
     printf("CDecode.exp:%x\n", CDecode.exp)
     printf("io.out.scaleFP(ReduceWidth/4/MinGroupSize).exp:%x\n", io.out.scaleFP(ReduceWidth/4/MinGroupSize).exp)
@@ -445,6 +516,7 @@ class FReduceMACPipe0(implicit p: Parameters) extends CuteModule {
     io.out.scaleFP(ReduceWidth/4/MinGroupSize).signed_sig := CDecode.signed_sig
     io.out.scaleFP(ReduceWidth/4/MinGroupSize).exception := CDecode.exception
 
+    //把 FP4 / MXFP4 的 scale 统一转换成内部 RawFloat 表示（供后续归约使用）。
     for (i <- 0 until ReduceWidth/4/MinGroupSize){
         if (DEBUG_FP4) {
             printf("io.inAscale[%d]: %x\n", i.U, io.inAscale(i))
@@ -485,9 +557,11 @@ class FReduceMACPipe0(implicit p: Parameters) extends CuteModule {
             printf("io.out.scaleFP[%d].signed_sig: %x\n", i.U, io.out.scaleFP(i).signed_sig)
         }
 
+        //我们用其他地方的异常值来进行判断
         io.out.scaleFP(i).exception := 0.U.asTypeOf(new RawFloatException)
     }
 
+    //Pipe0 的“纯乘法 + 局部归约”核心计算单元：把所有输入向量做“尾数乘法”，并对 FP4 做第一层局部加法归约
     //尾数乘法计算
     if (DEBUG_FP8)
     {for (i <- 0 until ReduceWidth/8) {
@@ -535,11 +609,12 @@ class FReduceMACPipe0(implicit p: Parameters) extends CuteModule {
         FP4Product(i) := FP4A * FP4B
     }
 
-    
+    //将FP4的一部分进行归约，从而在保证时序的情况下提前完成一部分内容
     for(i <- 0 until ReduceWidth/4/FP4P0AddNum){ 
         io.out.FP4ReduceRes(i) := FP4Product.slice(i * FP4P0AddNum, (i + 1) * FP4P0AddNum).reduce(_ + _)
     }
 
+    //计算每个乘积的指数 → 生成异常 → 加入C → 找最大指数（用于对齐）
     //阶码计算
     val MulExpVec = Wire(Vec((ReduceWidth/8) + 1, UInt(10.W)))
     val MulExpVecSigned = Wire(Vec((ReduceWidth/8) + 1, SInt(9.W))) //for debug
@@ -602,6 +677,7 @@ class FReduceMACPipe0(implicit p: Parameters) extends CuteModule {
     // cmptreep0.io.in(ReduceWidth/16) := MulExpVec(ReduceWidth/8) //最后一个C的阶码
     for (i <- 0 until ReduceWidth/16){
         cmptreefp8p0.io.in(i) := MulExpVec(i)
+        //如果是FP8则把全部的比较树用满，否则的话我们只用前面一半
         cmptreefp8p0.io.in(i + ReduceWidth/16) := Mux(io.opcode === 7.U || io.opcode === 8.U || io.opcode === 11.U || io.opcode === 12.U, MulExpVec(i + ReduceWidth/16), 0.U)
     }
 
@@ -621,6 +697,12 @@ class FReduceMACPipe0(implicit p: Parameters) extends CuteModule {
     io.out.CmpTreefp8P0Result := cmptreefp8p0.io.out
 }
 
+/*
+    1、找最大指数（最终版）
+    2、计算右移量（对齐核心）
+    3、异常汇总（结果级判断）
+    4、局部归约（FP4继续缩减）
+*/
 // Pipe1的功能是将Pipe0的乘积向量尾数右移，得到尾数向量用于归约计算
 class FReduceMACPipe1(implicit p: Parameters) extends CuteModule {
     val io = IO(new Bundle{
@@ -628,6 +710,7 @@ class FReduceMACPipe1(implicit p: Parameters) extends CuteModule {
         val out = Output(new FPipe1Result)
     })
 
+    //找FP4 所有 block 的最大指数
     val cmptreefp4p0 = Module(new CmpTreeP0(8, ReduceWidth/4/MinGroupSize + 1, 9))
     // 找到FP4情况下scale product 与C EXP的最大值
     // val FP4MaxExp = Wire(SInt(8.W))
@@ -738,6 +821,7 @@ class FReduceMACPipe1(implicit p: Parameters) extends CuteModule {
     io.out.scaleFP := io.in.scaleFP
 }
 
+//把所有乘积按最大指数对齐 → 转成统一格式 → 开始做大规模加法归约
 class FReduceMACPipe2(implicit p: Parameters) extends CuteModule {
     val io = IO(new Bundle{
         val in = Input(new FPipe1Result)
@@ -858,6 +942,7 @@ class FReduceMACPipe2(implicit p: Parameters) extends CuteModule {
     io.out.SumException := io.in.SumException
 }
 
+//整个归约流水线的“最后一级加法树 + 格式整理”阶段
 class FReduceMACPipe3(implicit p: Parameters) extends CuteModule {
     val io = IO(new Bundle{
         val in = Input(new FPipe2Result)
@@ -893,6 +978,8 @@ class FReduceMACPipe3(implicit p: Parameters) extends CuteModule {
     // io.out.ReduceResFP4 := ReduceResFP4
 }
 
+
+//结果规范化 + 打包 IEEE754 + 异常处理。即把原始累加结果 → 转成标准浮点数（或整数）输出
 class FReduceMACPipe4(implicit p: Parameters) extends CuteModule {
     val io = IO(new Bundle{
         val in = Input(new FPipe3Result)
@@ -905,10 +992,11 @@ class FReduceMACPipe4(implicit p: Parameters) extends CuteModule {
     val SumResult0 = Wire(SInt((32).W))
     val SumResult1 = Wire(SInt((32).W))
     
+    //选择最终加法结果
     SumResult0 := io.in.ReduceRes0.pad(32) //.pad(26 + log2Ceil(ReduceWidth/16))
     SumResult1 := io.in.ReduceRes1.pad(32)
 
-
+    //当这个是int8或者fp8的时候，选择前者，否则选择后者
     ReduceRes := Mux(io.in.opcode === 0.U || io.in.opcode === 4.U || io.in.opcode === 5.U || io.in.opcode === 6.U || io.in.opcode === 7.U || io.in.opcode === 8.U || io.in.opcode === 11.U || io.in.opcode === 12.U, 
         SumResult0 + SumResult1.pad(32), SumResult0)
 
@@ -926,6 +1014,8 @@ class FReduceMACPipe4(implicit p: Parameters) extends CuteModule {
     val IsException = Wire(Bool())
     IsException := io.in.SumException.orR || (ReduceRes === 0.S)
 
+    //异常值处理
+    //BigInt无限位（任意大），而其余的如int则只有32位
     ExceptionBits := Mux(io.in.SumException(3) || io.in.SumException(2) && io.in.SumException(1), 0x7FC00000.U,
         Mux(io.in.SumException(2), 0x7F800000.U, 
             Mux(io.in.SumException(1), BigInt("FF800000", 16).U, 0.U)
@@ -1028,6 +1118,22 @@ class FReduceMACPipe4(implicit p: Parameters) extends CuteModule {
 
 //这里的top是切好流水的，为方便debug，先写一个单周期的top
 
+/*
+从本质上来说decoupledIO就是握手机制，只有在都拉高的情况下才会发生数据传输
+class DecoupledIO[T] extends Bundle {
+  val bits  = T      // 数据
+  val valid = Bool() // 发送方说：数据有效
+  val ready = Bool() // 接收方说：我准备好了
+}
+而对于decoupledIO的默认方向是
+producer（输出端）：
+  valid → 输出
+  bits  → 输出
+  ready ← 输入
+
+Flipped 的作用则是将方向全部反过来
+*/
+
 class FReducePE(implicit p: Parameters) extends CuteModule {
     val io = IO(new Bundle{
         val AVector = Flipped(DecoupledIO(UInt(ReduceWidth.W)))
@@ -1040,9 +1146,17 @@ class FReducePE(implicit p: Parameters) extends CuteModule {
     })
 
     // for DEBUG
+    //Reg + := → 在每个时钟上升沿更新
+    /*
+        三种情况：
+        1、Reg + := → 时序逻辑：有寄存器 → 有时钟 → 每周期更新
+        2、Wire + := → 组合逻辑：没有寄存器 → 只是组合电路（加法器）
+        3、IO + := → 连线：只是信号连接
+    */
     val count = RegInit(0.U(32.W))
     count := count + 1.U
 
+    //这里的module是“实例化一个硬件子模块（电路模块）”
     val pipe0 = Module(new FReduceMACPipe0)
     val pipe1 = Module(new FReduceMACPipe1)
     val pipe2 = Module(new FReduceMACPipe2)
@@ -1060,9 +1174,11 @@ class FReducePE(implicit p: Parameters) extends CuteModule {
         printf("AScale: %x\n", io.AScale.bits)
     }
 
-
+    //流水线有效位寄存器，6 个寄存器控制 每级流水线是否有效，用来进行反压控制和流水线停顿
+    //0 → 输入寄存器有效位；1 → Pipe0 输出寄存器有效位...5 → Pipe4 输出寄存器有效位
     val PipeResRegValid = RegInit(VecInit(Seq.fill(6)(false.B)))
 
+    //输入寄存器，每个寄存器都是流水线寄存存储点，在InReady时更新
     val InputRegC = Reg(UInt((ResultWidth + 4).W))
     val InputRegA = Reg(new FDecodeResult)
     val InputRegB = Reg(new FDecodeResult)
@@ -1070,12 +1186,15 @@ class FReducePE(implicit p: Parameters) extends CuteModule {
     val InputRegBFP4Vec = Reg(Vec(ReduceWidth/4, SInt(5.W)))
     val InputRegAscale = Reg(Vec(ReduceWidth/MinDataTypeWidth/MinGroupSize, UInt(ScaleElementWidth.W)))
     val InputRegBscale = Reg(Vec(ReduceWidth/MinDataTypeWidth/MinGroupSize, UInt(ScaleElementWidth.W)))
+    
+    //流水线寄存器，用于存储每级流水线的输出结果
     val Pipe0ResReg = Reg(new FPipe0Result)
     val Pipe1ResReg = Reg(new FPipe1Result)
     val Pipe2ResReg = Reg(new FPipe2Result)
     val Pipe3ResReg = Reg(new FPipe3Result)
     val Pipe4ResReg = Reg(UInt(ResultWidth.W))
 
+    //例如Pipe4ResRegAllowIn 表示 Pipe4 的输出寄存器是否允许写入新的数据
     val InReady = Wire(Bool())
     val Pipe0ResRegAllowIn = Wire(Bool())
     val Pipe1ResRegAllowIn = Wire(Bool())
@@ -1083,6 +1202,8 @@ class FReducePE(implicit p: Parameters) extends CuteModule {
     val Pipe3ResRegAllowIn = Wire(Bool())
     val Pipe4ResRegAllowIn = Wire(Bool())
 
+    //经典流水线反压（backpressure）
+    //该级的输出寄存器运行写入新的数据的条件是：允许这一级的输出寄存器的内容无效（空），或者下一级的准备好接收数据了
     Pipe4ResRegAllowIn := (!PipeResRegValid(5)) || io.DResult.ready
     Pipe3ResRegAllowIn := (!PipeResRegValid(4)) || Pipe4ResRegAllowIn
     Pipe2ResRegAllowIn := (!PipeResRegValid(3)) || Pipe3ResRegAllowIn
@@ -1090,12 +1211,14 @@ class FReducePE(implicit p: Parameters) extends CuteModule {
     Pipe0ResRegAllowIn := (!PipeResRegValid(1)) || Pipe1ResRegAllowIn
     InReady := (!PipeResRegValid(0)) || Pipe0ResRegAllowIn
 
+    //这些都用输入寄存器的握手信号
     io.AVector.ready := InReady
     io.BVector.ready := InReady
     io.AScale.ready := InReady
     io.BScale.ready := InReady
     io.CAdd.ready := InReady
 
+    //如果ABC三个输入向量都准备好了，同时保证在需要scale的情况下scale的数据信号也准备好了
     val ABCValid = Wire(UInt(1.W))
     ABCValid := io.AVector.valid && io.BVector.valid && io.CAdd.valid && ((io.opcode =/= 7.U && io.opcode =/= 8.U && io.opcode =/= 9.U && io.opcode =/= 10.U) || (io.AScale.valid && io.BScale.valid))
 
@@ -1127,6 +1250,7 @@ class FReducePE(implicit p: Parameters) extends CuteModule {
                     InputRegA.TF32Vec(i * 32 + j).exp := Mux(io.opcode === 7.U || io.opcode === 8.U, scaleSum(i).asSInt.pad(10) + ADecoder.io.out.TF32Vec(i * 32 + j).exp.pad(10), ADecoder.io.out.TF32Vec(i * 32 + j).exp.pad(10))
                 }
             }
+            //把输入的扁平结构的scale重新映射成向量结构
             InputRegAscale := io.AScale.bits.asTypeOf(InputRegAscale)
             InputRegBscale := io.BScale.bits.asTypeOf(InputRegBscale)
             PipeResRegValid(0) := true.B
