@@ -167,12 +167,14 @@ class FVecDecoder(implicit p: Parameters) extends CuteModule {
     val TF32i8 = Wire(Vec(ReduceWidth/8, new RawFloat(10, 11)))
     for(i <- 0 until ReduceWidth/8){
         TF32i8(i) := RawFloat.fromUInt(0.U(21.W), 10, 11)
+        //根据有无符号进行扩展，这个.pad(12)是指最终位宽变成12bit
         TF32i8(i).signed_sig := Mux(io.opcode === 0.U, 
             io.in(8 * i + 7, 8 * i).asSInt.pad(12), io.in(8 * i + 7, 8 * i).pad(12).asSInt
         )
     }
 
     //等价于for(i = 0; i < ReduceWidth/32; i++)
+    //这里处理tf32，fp16（前一半数据），fp8（前四分之一的数据）
     for(i <- 0 until ReduceWidth/32){
         val Bits8  = io.in(8 * i + 7, 8 * i)
         val Bits16 = io.in(16 * i + 15, 16 * i)
@@ -472,19 +474,21 @@ class FReduceMACPipe0(implicit p: Parameters) extends CuteModule {
         val out = Output(new FPipe0Result)
     })
 
-    //这里默认C为TF32
+    //这里默认C为FP32
     val CDecode = RawFloat.fromUInt(io.inC, 8, 24)
 
-    // FP4 scale 相乘
+    // FP4 scale 相乘，这里处理的是ue4m3
     val FP4AScaleDecoder = Module(new FPScaleDecoder())
     val FP4BScaleDecoder = Module(new FPScaleDecoder())
     FP4AScaleDecoder.io.in := io.inAscale
     FP4BScaleDecoder.io.in := io.inBscale
 
+    //这里处理FP4的scale，其为ue8m0，这里是什么意思？
     val mxfp4ScaleSum = Wire(Vec(ReduceWidth/4/32, UInt(10.W)))
     val mxfp4ScaleSat = Wire(Vec(ReduceWidth/4/32, UInt(9.W)))
     // 结果指数超过127即为无穷大，因此不需要保留过大的scale，直接截断到9位，超过9位的和接近9位的结果都会是无穷大
     for (i <- 0 until ReduceWidth/4/32){
+        //这个偏置何意味？
         mxfp4ScaleSum(i) := io.inAscale(i).asUInt.pad(10) + io.inBscale(i).asUInt.pad(10) + (1 + 6).U
         mxfp4ScaleSat(i) := Mux(mxfp4ScaleSum(i)(9) === 1.U, 511.U, mxfp4ScaleSum(i)(8, 0))
     }
@@ -626,7 +630,7 @@ class FReduceMACPipe0(implicit p: Parameters) extends CuteModule {
         // printf("fp8MulExpVec[%d]: %x\n", i.U,MulExpVec(i))
         MulExpVecSigned(i) := io.inA.TF32Vec(i).exp.pad(9) + io.inB.TF32Vec(i).exp.pad(9)
         MulExpVec(i) := Mux(io.inA.TF32Vec(i).exception.is_zero | io.inB.TF32Vec(i).exception.is_zero, 0.U, 
-            (io.inA.TF32Vec(i).exp + io.inB.TF32Vec(i).exp).asUInt + 511.U(10.W))
+            (io.inA.TF32Vec(i).exp + io.inB.TF32Vec(i).exp).asUInt + 511.U(10.W))//通过+511，从而转化为无符号数
         if (DEBUG_FP8)
         {printf("MulExpVec[%d]: %x\n", i.U,MulExpVec(i))}
     }
@@ -665,6 +669,7 @@ class FReduceMACPipe0(implicit p: Parameters) extends CuteModule {
     MulExpVecSigned(ReduceWidth/8) := CDecode.exp.pad(9) //for debug
 
     io.out.ExceptionVec(ReduceWidth/8) := CDecode.exception
+    //前者是浮点数，后者是整数
     io.out.CMantissa := Mux(io.opcode === 1.U || io.opcode === 2.U || io.opcode === 3.U || io.opcode === 7.U || io.opcode === 8.U || io.opcode === 9.U || io.opcode === 10.U || io.opcode === 11.U || io.opcode === 12.U, 
         CDecode.signed_sig.pad(32), io.inC.asSInt)
     
