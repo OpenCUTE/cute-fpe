@@ -18,3 +18,17 @@ ccode/gendata
 *.txt
 **.metals
 **.vscode
+rtl_cmodel_compare/build/
+rtl_cmodel_compare/runs/
+rtl_cmodel_compare/mismatch_debug*/
+rtl_cmodel_compare/*.fst
+rtl_cmodel_compare/*.vcd
+rtl_cmodel_compare/*.log
+rtl_cmodel_compare/core*
+rtl/fpe/rtl/CuteFpeConfig.svh
+.DS_Store
+cmodel/logs/
+rtl_cmodel_compare/logs/
+*.pid
+__pycache__/
+*.py[cod]

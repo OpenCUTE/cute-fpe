@@ -1,0 +1,7 @@
+runs/
+directed_runs/
+build/
+batch_logs/*.log
+mismatch_debug*/
+output_data/
+scale_output_data/
