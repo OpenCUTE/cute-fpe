@@ -41,7 +41,7 @@ module pipe6_stage (
     // =========================================================
     output reg [28+$clog2(`ADD_NUM0)+$clog2(`ADD_NUM1)+$clog2(`ADD_NUM2):0]
                        sign_fp8_o,
-    output reg [`decimal_places1+`block_int_w+$clog2(`P4_ADD0_OUT_NUM):0]
+    output reg [`decimal_places1+`block_int_w-1+$clog2(`P4_ADD0_OUT_NUM):0]
                        nvmxfp4_sig_o,
 
     // =========================================================
@@ -75,7 +75,7 @@ end
 // localparam：统一管理位宽
 // =========================================================================
 localparam FP8_W    = 28 + $clog2(`ADD_NUM0) + $clog2(`ADD_NUM1) + $clog2(`ADD_NUM2) + 1;
-localparam NV_SIG_W = `decimal_places1 + `block_int_w + $clog2(`P4_ADD0_OUT_NUM) + 1;
+localparam NV_SIG_W = `decimal_places1 + `block_int_w + $clog2(`P4_ADD0_OUT_NUM);
 
 // =========================================================================
 // 内部连线：接收 add2_stage 组合逻辑输出

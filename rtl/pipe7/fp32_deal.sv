@@ -2,7 +2,7 @@
 
 module fp32_deal (
     input wire signed [28+$clog2(`ADD_NUM0)+$clog2(`ADD_NUM1)+$clog2(`ADD_NUM2):0] sign_fp8_i,
-    input wire signed [`decimal_places1+`block_int_w+$clog2(`P4_ADD0_OUT_NUM):0] nvmxfp4_sig,
+    input wire signed [`decimal_places1+`block_int_w-1+$clog2(`P4_ADD0_OUT_NUM):0] nvmxfp4_sig,
 
     // input wire [1:0]  data_type_i,
     input wire         is_MXINTFP4_i,
@@ -17,22 +17,22 @@ module fp32_deal (
 
 wire [28+$clog2(`ADD_NUM0)+$clog2(`ADD_NUM1)+$clog2(`ADD_NUM2) - 1:0] sign_fp8;
 
-wire [`decimal_places1+`block_int_w+$clog2(`P4_ADD0_OUT_NUM) - 1:0] nvmxfp4_sig_temp;
+wire [`decimal_places1+`block_int_w-1+$clog2(`P4_ADD0_OUT_NUM) - 1:0] nvmxfp4_sig_temp;
 
 // assign fp32_sign = (data_type_i == `DATA_MXNVFP4) ? nvmxfp4_sig[`decimal_places1+`block_int_w+$clog2(`P4_ADD0_OUT_NUM) ] :
 //                                                     sign_fp8_i[28+$clog2(`ADD_NUM0)+$clog2(`ADD_NUM1)+$clog2(`ADD_NUM2)] ;
-assign fp32_sign = is_MXINTFP4_i ? nvmxfp4_sig[`decimal_places1+`block_int_w+$clog2(`P4_ADD0_OUT_NUM) ] :
+assign fp32_sign = is_MXINTFP4_i ? nvmxfp4_sig[`decimal_places1+`block_int_w-1+$clog2(`P4_ADD0_OUT_NUM) ] :
                                    sign_fp8_i[28+$clog2(`ADD_NUM0)+$clog2(`ADD_NUM1)+$clog2(`ADD_NUM2)] ;
 
 assign sign_fp8 = (sign_fp8_i[28+$clog2(`ADD_NUM0)+$clog2(`ADD_NUM1)+$clog2(`ADD_NUM2)]) ? -sign_fp8_i : sign_fp8_i;
 
-assign nvmxfp4_sig_temp = (nvmxfp4_sig[`decimal_places1+`block_int_w+$clog2(`P4_ADD0_OUT_NUM)]) ? -nvmxfp4_sig : nvmxfp4_sig;
+assign nvmxfp4_sig_temp = (nvmxfp4_sig[`decimal_places1+`block_int_w-1+$clog2(`P4_ADD0_OUT_NUM)]) ? -nvmxfp4_sig : nvmxfp4_sig;
 
 wire [6:0] nvmxfp4_clz; 
 wire [5:0]fp8_clz_temp;
 wire [5:0] fp8_clz;
 
-localparam P4_PAD_W = 16 + 3 - $clog2(`P4_ADD0_OUT_NUM);
+localparam P4_PAD_W = 64 - (`decimal_places1 + `block_int_w - 1 + $clog2(`P4_ADD0_OUT_NUM));
 
 //检查nvmxfp4_sig的前面的零的个数
 CLZ #(

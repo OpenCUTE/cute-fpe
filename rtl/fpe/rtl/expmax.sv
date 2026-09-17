@@ -33,8 +33,12 @@ module expmax (
     // assign scale_exp_s0 = $signed({1'd0,scale_exp0}) - 10'sd254;
     // assign scale_exp_s1 = $signed({1'd0,scale_exp1}) - 10'sd254;
 
-    wire signed [9:0] Eab_MAX_S0 = $signed({1'd0, Eab_MAX0}) + scale_exp_s0;
-    wire signed [9:0] Eab_MAX_S1 = $signed({1'd0, Eab_MAX1}) + scale_exp_s1;
+    // exp_sum用原始指数0标识零乘积；该组不能参与有效最大指数比较。
+    // -512小于任何有效对阶指数，避免零乘积把很小的C右移清零。
+    wire signed [9:0] Eab_MAX_S0 = !(|Eab_MAX0) ? 10'sh200
+        : $signed({1'd0, Eab_MAX0}) + scale_exp_s0;
+    wire signed [9:0] Eab_MAX_S1 = !(|Eab_MAX1) ? 10'sh200
+        : $signed({1'd0, Eab_MAX1}) + scale_exp_s1;
 
     wire signed [9:0] Eab_MAX_S  = (Eab_MAX_S0 > Eab_MAX_S1) ? Eab_MAX_S0 : Eab_MAX_S1;
 

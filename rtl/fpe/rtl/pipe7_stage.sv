@@ -6,7 +6,7 @@ module pipe7_stage (
 
     // 输出：add2_stage 结果
     input wire signed [28+$clog2(`ADD_NUM0)+$clog2(`ADD_NUM1)+$clog2(`ADD_NUM2):0] sign_fp8_i,
-    input wire signed [`decimal_places1+`block_int_w+$clog2(`P4_ADD0_OUT_NUM):0] nvmxfp4_sig_i,
+    input wire signed [`decimal_places1+`block_int_w-1+$clog2(`P4_ADD0_OUT_NUM):0] nvmxfp4_sig_i,
 
     input wire signed [9:0] E_MAX_i,
     input wire signed [9:0] block_max_i,

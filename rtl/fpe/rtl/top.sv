@@ -653,7 +653,7 @@ module top (
 
     wire signed [28+$clog2(`ADD_NUM0)+$clog2(`ADD_NUM1)+$clog2(`ADD_NUM2):0]
                       p6_sign_fp8_o;
-    wire signed [`decimal_places1+`block_int_w+$clog2(`P4_ADD0_OUT_NUM):0]
+    wire signed [`decimal_places1+`block_int_w-1+$clog2(`P4_ADD0_OUT_NUM):0]
                       p6_nvmxfp4_sig_o;
 
     wire signed [9:0]  p6_E_MAX_o;

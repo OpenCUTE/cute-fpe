@@ -2,7 +2,7 @@
 
 module p7_shift (
     input wire [28+$clog2(`ADD_NUM0)+$clog2(`ADD_NUM1)+$clog2(`ADD_NUM2) - 1:0] sign_fp8,
-    input wire [`decimal_places1+`block_int_w+$clog2(`P4_ADD0_OUT_NUM) - 1:0] nvmxfp4_sig,
+    input wire [`decimal_places1+`block_int_w-1+$clog2(`P4_ADD0_OUT_NUM) - 1:0] nvmxfp4_sig,
 
     input wire signed [9:0] E_MAX_i,
     input wire signed [9:0] block_max_i,
@@ -17,7 +17,7 @@ module p7_shift (
     output wire  signed [9 :0]  fp32_exp
 );
 localparam fp8_w = 28+$clog2(`ADD_NUM0)+$clog2(`ADD_NUM1)+$clog2(`ADD_NUM2);
-localparam fp4_w = `decimal_places1+`block_int_w+$clog2(`P4_ADD0_OUT_NUM);
+localparam fp4_w = `decimal_places1+`block_int_w-1+$clog2(`P4_ADD0_OUT_NUM);
 
 wire [`decimal_places0 : 0] fp8_sig_temp;
 wire [`decimal_places1 : 0] fp4_sig_temp;

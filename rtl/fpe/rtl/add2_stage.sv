@@ -15,7 +15,7 @@ module add2_stage (
 
     //输出
     output wire signed [28+$clog2(`ADD_NUM0)+$clog2(`ADD_NUM1)+$clog2(`ADD_NUM2):0]   sign_fp8,
-    output wire signed [`decimal_places1+`block_int_w+$clog2(`P4_ADD0_OUT_NUM):0] nvmxfp4_sig
+    output wire signed [`decimal_places1+`block_int_w-1+$clog2(`P4_ADD0_OUT_NUM):0] nvmxfp4_sig
 );
 
 // -------------------------------------------------------

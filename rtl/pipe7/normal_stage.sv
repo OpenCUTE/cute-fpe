@@ -8,7 +8,7 @@ module normal_stage (
     input wire         is_MXINTFP4_i,
 
     input wire  signed [28+$clog2(`ADD_NUM0)+$clog2(`ADD_NUM1)+$clog2(`ADD_NUM2):0] sign_fp8_i,
-    input wire signed [`decimal_places1+`block_int_w+$clog2(`P4_ADD0_OUT_NUM):0] nvmxfp4_sig_i,
+    input wire signed [`decimal_places1+`block_int_w-1+$clog2(`P4_ADD0_OUT_NUM):0] nvmxfp4_sig_i,
 
     // fp32_deal 输出：归一化后的 fp32 各字段
     output wire        fp32_sign,

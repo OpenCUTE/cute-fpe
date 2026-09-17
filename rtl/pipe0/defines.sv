@@ -1,8 +1,14 @@
-`include "CuteFpeConfig.svh"
-
+`define ReduceWidth       512
 `define LANE_NUM         `ReduceWidth / 32
 `define BLOCK_NUM         `LANE_NUM / 2
+`define ResultWidth       32
+`define MinGroupSize      16
+`define MinDataTypeWidth  4
+`define ScaleElementWidth 8
+`define ScaleBusWidth     `ReduceWidth/`MinDataTypeWidth/`MinGroupSize*`ScaleElementWidth
 `define Scale_NUM         `ScaleBusWidth / `ScaleElementWidth
+`define cmptreelayers     4
+`define fp8cmptreelayers  4
 `define fp4GroupSize      `ReduceWidth / 4 / 16
 
 //mxfp8/fp6 group
@@ -10,6 +16,7 @@
 
 `define MXFP86_ZERO_GROUP_NUM   (`LANE_NUM / `MXFP86_ZERO_GROUP_SIZE)
 
+`define FP4P0AddNum       2
 `define FP4P1AddNum       (16 / `FP4P0AddNum)
 
 //opcode
@@ -66,5 +73,5 @@
 `define MIN_EXP_THRESHOLD1   -139
 
 
-//每组的block中的fp4的整数位
-`define block_int_w          10
+//每组block的整数宽度：11位幅值 + 1位符号，可覆盖NVFP4最大幅值2025
+`define block_int_w          12
