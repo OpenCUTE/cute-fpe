@@ -52,11 +52,14 @@ cd rtl_cmodel_compare
 make run DTYPE=1 VEC_COUNT=100 SEED=1
 ```
 
-Fast check across all currently supported non-scale dtypes:
+Fast check across all 22 supported dtypes (opcodes 0-21, with and without scale):
 
 ```bash
 make smoke SMOKE_COUNT=2 SEED=1
 ```
+
+The completed smoke test and 10-million-vector-per-type regression are
+recorded in [FP6_TEST_RESULTS.md](FP6_TEST_RESULTS.md).
 
 Larger regression:
 
@@ -114,12 +117,26 @@ Supported dtypes:
 16 I4U4I32
 17 U4I4I32
 18 U4U4I32
+19 MXINT4F32
+20 FP6E3M2F32
+21 FP6E2M3F32
 ```
 
 For `DTYPE=11/12`, the RTL opcode remains `11/12`, but the C model is run with
 its internal mixed-float dtype ids `32/38`. The C-model FP8 payload follows
 `CMODE_BITSIZE`: 512-bit generates 64 bytes per vector, while 256-bit generates
 32 bytes per vector.
+
+For `DTYPE=20/21`, the non-scale FP6 E3M2/E2M3 opcodes map to the existing
+C-model mixed-float dtype ids `50/44`. Each FP6 element occupies one byte,
+with its encoding in the low 6 bits. Like non-scale FP8, the payload follows
+`CMODE_BITSIZE` (64 elements for 512-bit input). The testbench keeps both
+scale-valid signals low and drives random scale-bus values to verify that
+these formats do not wait for or consume scale inputs.
+
+```bash
+make run-dtypes DTYPES="20 21" VEC_COUNT=100 SEED=1
+```
 
 For `DTYPE=7/8/13/14`, the RTL opcode remains `7/8/13/14`, while the C model is
 run with its internal scaled mixed-float dtype ids `57/63/75/69`. The data

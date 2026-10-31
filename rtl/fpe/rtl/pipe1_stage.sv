@@ -16,7 +16,7 @@ module pipe1_stage (
     input wire         NINF_i,
 
     // opcode
-    input wire  [3:0]  opcode,
+    input wire  [4:0]  opcode,
 
     input wire  is_High_precision,
     input wire  is_low_precision,

@@ -253,8 +253,9 @@ serially rather than elaborating them concurrently.
 
 ## 4. Data Types and Storage Conventions
 
-The opcode is 5 bits wide. CUTE software, control logic, the SV FPE, and the
-SDK GEMM generator use the following common ABI, from 0 through 19:
+The opcode is 5 bits wide. The standalone SV FPE supports opcodes 0 through
+21 below. Opcodes 0-19 are the existing common CUTE/SDK ABI; the new non-scale
+FP6 opcodes 20/21 are covered by the standalone RTL/C-model comparison flow.
 
 ```text
  0  I8 x I8 -> I32             10  MXFP4 -> FP32
@@ -267,15 +268,16 @@ SDK GEMM generator use the following common ABI, from 0 through 19:
  7  MXFP8 E4M3 -> FP32         17  U4 x I4 -> I32
  8  MXFP8 E5M2 -> FP32         18  U4 x U4 -> I32
  9  NVFP4 -> FP32              19  MXINT4 -> FP32
+20  FP6 E3M2 -> FP32           21  FP6 E2M3 -> FP32
 ```
 
 Important layout conventions:
 
-- MXFP6 is stored in CUTE DRAM/Scratchpads in an 8-bit container, with only
+- FP6 and MXFP6 use an 8-bit container, with only
   the low 6 bits containing the format encoding.
 - I4/U4 and MXINT4 A/B operands use low-nibble-first packed storage: one byte
   holds two logical elements.
-- MXFP8, MXFP6, NVFP4, MXFP4, and MXINT4 use A/B scale. I4/U4 does not use
+- MXFP8, MXFP6, NVFP4, MXFP4, and MXINT4 use A/B scale. I4/U4 and FP6 do not use
   scale.
 - A C-model dtype identifier may differ from a CUTE opcode. For example,
   CUTE opcode 7, MXFP8 E4M3, uses C-model dtype 57. The SDK golden generator
@@ -363,9 +365,9 @@ make run DTYPE=9 VEC_COUNT=1000 SEED=1 \
 make run DTYPE=16 VEC_COUNT=1000 SEED=1 \
   CMODE_BITSIZE=256 RTL_BITSIZE=256
 
-# Test opcodes 0 through 19 under the 512-bit configuration
+# Test opcodes 0 through 21 under the 512-bit configuration
 make run-dtypes \
-  DTYPES="0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19" \
+  DTYPES="0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21" \
   VEC_COUNT=1000 SEED=1 CMODE_BITSIZE=512 RTL_BITSIZE=512
 ```
 

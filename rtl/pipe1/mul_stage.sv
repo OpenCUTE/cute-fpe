@@ -4,7 +4,7 @@ module mul_stage (
     input wire  [`ScaleBusWidth - 1 : 0] AScale_bits,
     input wire  [`ScaleBusWidth - 1 : 0] BScale_bits,
 
-    input wire  [3:0]  opcode,
+    input wire  [4:0]  opcode,
 
     input wire  is_High_precision,
     input wire  is_low_precision,

@@ -48,7 +48,7 @@ module pipe0_stage (
     output reg         NINF_o_r,
 
     // opcode 透传
-    output reg  [3:0]  opcode_r,
+    output reg  [4:0]  opcode_r,
 
     output reg       is_High_precision_r,
     output reg       is_low_precision_r,
@@ -117,7 +117,7 @@ module pipe0_stage (
     wire        PINF_w;
     wire        NINF_w;
 
-    wire [3:0] opcode_w;
+    // wire [3:0] opcode_w;
 
     wire       is_High_precision_w;
     wire       is_low_precision_w;
@@ -152,7 +152,7 @@ module pipe0_stage (
         .PINF           (PINF_w         ),
         .NINF           (NINF_w         ),
 
-        .opcode_o       (opcode_w       ),
+        // .opcode_o       (opcode_w       ),
 
         .is_High_precision_o (is_High_precision_w),
         .is_low_precision_o  (is_low_precision_w ),
@@ -200,7 +200,7 @@ module pipe0_stage (
             PINF_o_r       <= 1'b0;
             NINF_o_r       <= 1'b0;
 
-            opcode_r       <= 4'd0;
+            opcode_r       <= 'd0;
             is_High_precision_r <= 1'b0;
             is_low_precision_r  <= 1'b0;
             is_MXNVFP4_r        <= 1'b0;
@@ -237,7 +237,7 @@ module pipe0_stage (
             PINF_o_r       <= PINF_w;
             NINF_o_r       <= NINF_w;
 
-            opcode_r       <= opcode_w;
+            opcode_r       <= opcode;
             is_High_precision_r <= is_High_precision_w;
             is_low_precision_r  <= is_low_precision_w;
             is_MXNVFP4_r        <= is_MXNVFP4_w;

@@ -1,7 +1,7 @@
 `include "defines.sv"
 
 module decode_opcode1 (
-    input  wire [3 :0] opcode,
+    input  wire [4 :0] opcode,
     input  wire        is_mxintfp4,
 
     // output wire [1 :0] data_type,
@@ -18,9 +18,9 @@ wire is_TF32    = (opcode == `DataTypeTF32TF32F32 );
 wire is_BF16    = (opcode == `DataTypeBF16BF16F32 );
 wire is_FP16    = (opcode == `DataTypeF16F16F32   );
 wire is_E5M2    = (opcode == `DataTypeMxfp8e5m2F32 || opcode == `DataTypefp8e5m2F32);
-wire is_E3M2    = (opcode == `DataTypeMxfp6e3m2F32);
+wire is_E3M2    = (opcode == `DataTypeMxfp6e3m2F32 || opcode == `DataTypefp6e3m2F32);
 wire is_E4M3    = (opcode == `DataTypeMxfp8e4m3F32 || opcode == `DataTypefp8e4m3F32);
-wire is_E2      = (opcode == `DataTypeMxfp6e2m3F32);
+wire is_E2      = (opcode == `DataTypeMxfp6e2m3F32 || opcode == `DataTypefp6e2m3F32);
 
 // assign data_type  =  (is_TF32 || is_BF16 || is_FP16) ? `DATA_High_precision :
 //                      (is_E5M2 || is_E3M2 || is_E4M3 || is_E2  ) ? `DATA_low_precision  :

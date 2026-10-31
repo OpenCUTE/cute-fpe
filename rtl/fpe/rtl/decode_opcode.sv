@@ -3,7 +3,7 @@
 module decode_opcode(
     input  wire [4: 0] opcode,
 
-    output wire [3: 0] opcode_o,
+    // output wire [3: 0] opcode_o,
 
     output wire is_TF32, is_BF16, is_FP16, 
     output wire is_E5M2, is_E3M2, is_E4M3, 
@@ -31,9 +31,9 @@ assign is_TF32    = (opcode == `DataTypeTF32TF32F32 );
 assign is_BF16    = (opcode == `DataTypeBF16BF16F32 );
 assign is_FP16    = (opcode == `DataTypeF16F16F32   );
 assign is_E5M2    = (opcode == `DataTypeMxfp8e5m2F32 || opcode == `DataTypefp8e5m2F32);
-assign is_E3M2    = (opcode == `DataTypeMxfp6e3m2F32);
+assign is_E3M2    = (opcode == `DataTypeMxfp6e3m2F32 || opcode == `DataTypefp6e3m2F32);
 assign is_E4M3    = (opcode == `DataTypeMxfp8e4m3F32 || opcode == `DataTypefp8e4m3F32);
-assign is_E2      = (opcode == `DataTypeMxfp6e2m3F32);
+assign is_E2      = (opcode == `DataTypeMxfp6e2m3F32 || opcode == `DataTypefp6e2m3F32);
 assign is_Int8    = (opcode == `DataTypeI8I8I32      || opcode == `DataTypeI8U8I32 || opcode == `DataTypeU8I8I32  || opcode == `DataTypeU8U8I32 );
 assign is_Int4    = (opcode == `DataTypeI4I4I32      || opcode == `DataTypeI4U4I32 || opcode == `DataTypeU4I4I32  || opcode == `DataTypeU4U4I32);
 assign is_mxint4  = (opcode == `DataTypemxint4F32);
@@ -59,7 +59,7 @@ assign is_INT4_o           = is_Int4;
 assign is_INTFP4_o         = is_intfp4;
 assign is_MXINT4_o         = is_mxint4;
 
-//这个往下传，如果不是int4/mxint4，则接入原有的opcode，反之则无意义
-assign opcode_o = (is_Int4 || is_mxint4) ? 4'd15 : opcode[3:0];
+// //这个往下传，如果不是int4/mxint4，则接入原有的opcode，反之则无意义
+// assign opcode_o = (is_Int4 || is_mxint4) ? 4'd15 : opcode[3:0];
 
 endmodule

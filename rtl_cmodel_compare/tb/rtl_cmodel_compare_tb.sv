@@ -174,8 +174,9 @@ module rtl_cmodel_compare_tb;
                    vec_start,
                    vec_count);
         end
-        if (opcode_int < 0 || opcode_int > 19) begin
-            $fatal(1, "Opcode must be in the supported RTL range [0, 19], got %0d", opcode_int);
+        if (opcode_int < 0 || opcode_int > `DataTypefp6e2m3F32) begin
+            $fatal(1, "Opcode must be in the supported RTL range [0, %0d], got %0d",
+                   `DataTypefp6e2m3F32, opcode_int);
         end
         scale_inputs_required = opcode_requires_scale(opcode_int);
         require_plusarg_string("A_HEX", a_hex_path);

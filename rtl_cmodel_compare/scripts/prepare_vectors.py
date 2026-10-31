@@ -213,6 +213,26 @@ SUPPORTED_DTYPES = {
         "scale": True,
         "scale_per_32_elements": True,
     },
+    20: {
+        "name": "FP6E3M2F32",
+        "prefix": "m16n8k32_e3m2_e3m2_to_fp32",
+        "cmodel_dtype": 50,
+        "a_bytes": 64,
+        "b_bytes": 64,
+        "a_elem_bytes": 1,
+        "b_elem_bytes": 1,
+        "scale": False,
+    },
+    21: {
+        "name": "FP6E2M3F32",
+        "prefix": "m16n8k32_e2m3_e2m3_to_fp32",
+        "cmodel_dtype": 44,
+        "a_bytes": 64,
+        "b_bytes": 64,
+        "a_elem_bytes": 1,
+        "b_elem_bytes": 1,
+        "scale": False,
+    },
 }
 
 

@@ -16,7 +16,7 @@ module decode_stage (
     output wire       PINF,
     output wire       NINF,
 
-    output wire [3:0] opcode_o,
+    // output wire [3:0] opcode_o,
 
     output wire       is_High_precision_o,
     output wire       is_low_precision_o,
@@ -104,7 +104,7 @@ module decode_stage (
     decode_opcode u_decode_opcode(
         .opcode        (opcode      ),
 
-        .opcode_o      (opcode_o    ),
+        // .opcode_o      (opcode_o    ),
 
         .is_TF32       (is_TF32     ), 
         .is_BF16       (is_BF16     ), 

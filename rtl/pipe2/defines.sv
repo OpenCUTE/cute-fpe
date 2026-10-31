@@ -40,6 +40,8 @@
 `define DataTypeU4I4I32      17    //U4 * I4 * I32
 `define DataTypeU4U4I32      18    //U4 * U4 * I32
 `define DataTypemxint4F32    19    //MXINT4 * MXINT4 * FP32
+`define DataTypefp6e3m2F32   20    //fp6e3m2 * fp6e3m2 * FP32
+`define DataTypefp6e2m3F32   21    //fp6e2m3 * fp6e2m3 * FP32
 
 //opcode0_to1
 `define DATA_High_precision  0

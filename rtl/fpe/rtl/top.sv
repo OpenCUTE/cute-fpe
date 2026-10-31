@@ -85,7 +85,7 @@ module top (
     wire        p0_NINF_o_r;
 
     // opcode 透传
-    wire [3:0]  p0_opcode_r;
+    wire [4:0]  p0_opcode_r;
 
     // 控制标志
     wire        p0_is_High_precision_r;
