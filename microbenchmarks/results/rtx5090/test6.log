@@ -1,0 +1,46 @@
+==== test6: scale application order (NVFP4) ====
+device: NVIDIA GeForce RTX 5090 (sm_120), driver API 13010, runtime 13010
+
+  [PASS] scale registers 0x0C383878 / 0x08383878 (documented 0x0C383878 / 0x08383878)
+  [PASS] reference (group 4 only) = 0x1.8p-11 (expected 1.5 * 2^-11)
+  [PASS] main experiment D = 0x1p-11 (M1 predicts 2^-11, M2 predicts 1.5 * 2^-11)
+
+-- scan: n in {1,2}, scale_A3 = m * 2^ea (m in {1,1.25,1.5,1.75}, ea in -4..-7), scale_B3 = 2^-6
+  n   scale_A3     reference      M1             M2             measured      
+  1   0x1p-4       0x1p-10        0x1p-10        0x1p-10        0x1p-10       
+  2   0x1p-4       0x1p-9         0x1p-9         0x1p-9         0x1p-9        
+  1   0x1.4p-4     0x1.4p-10      0x1p-10        0x1.4p-10      0x1p-10         <- distinguishing
+  2   0x1.4p-4     0x1.4p-9       0x1.4p-9       0x1.4p-9       0x1.4p-9      
+  1   0x1.8p-4     0x1.8p-10      0x1.8p-10      0x1.8p-10      0x1.8p-10     
+  2   0x1.8p-4     0x1.8p-9       0x1.8p-9       0x1.8p-9       0x1.8p-9      
+  1   0x1.cp-4     0x1.cp-10      0x1.8p-10      0x1.cp-10      0x1.8p-10       <- distinguishing
+  2   0x1.cp-4     0x1.cp-9       0x1.cp-9       0x1.cp-9       0x1.cp-9      
+  1   0x1p-5       0x1p-11        0x1p-11        0x1p-11        0x1p-11       
+  2   0x1p-5       0x1p-10        0x1p-10        0x1p-10        0x1p-10       
+  1   0x1.4p-5     0x1.4p-11      0x1p-11        0x1.4p-11      0x1p-11         <- distinguishing
+  2   0x1.4p-5     0x1.4p-10      0x1p-10        0x1.4p-10      0x1p-10         <- distinguishing
+  1   0x1.8p-5     0x1.8p-11      0x1p-11        0x1.8p-11      0x1p-11         <- distinguishing
+  2   0x1.8p-5     0x1.8p-10      0x1.8p-10      0x1.8p-10      0x1.8p-10     
+  1   0x1.cp-5     0x1.cp-11      0x1p-11        0x1.cp-11      0x1p-11         <- distinguishing
+  2   0x1.cp-5     0x1.cp-10      0x1.8p-10      0x1.cp-10      0x1.8p-10       <- distinguishing
+  1   0x1p-6       0x1p-12        0x0p+0         0x0p+0         0x0p+0        
+  2   0x1p-6       0x1p-11        0x1p-11        0x1p-11        0x1p-11       
+  1   0x1.4p-6     0x1.4p-12      0x0p+0         0x0p+0         0x0p+0        
+  2   0x1.4p-6     0x1.4p-11      0x1p-11        0x1.4p-11      0x1p-11         <- distinguishing
+  1   0x1.8p-6     0x1.8p-12      0x0p+0         0x0p+0         0x0p+0        
+  2   0x1.8p-6     0x1.8p-11      0x1p-11        0x1.8p-11      0x1p-11         <- distinguishing
+  1   0x1.cp-6     0x1.cp-12      0x0p+0         0x0p+0         0x0p+0        
+  2   0x1.cp-6     0x1.cp-11      0x1p-11        0x1.cp-11      0x1p-11         <- distinguishing
+  1   0x1p-7       0x1p-13        0x0p+0         0x0p+0         0x0p+0        
+  2   0x1p-7       0x1p-12        0x0p+0         0x0p+0         0x0p+0        
+  1   0x1.4p-7     0x1.4p-13      0x0p+0         0x0p+0         0x0p+0        
+  2   0x1.4p-7     0x1.4p-12      0x0p+0         0x0p+0         0x0p+0        
+  1   0x1.8p-7     0x1.8p-13      0x0p+0         0x0p+0         0x0p+0        
+  2   0x1.8p-7     0x1.8p-12      0x0p+0         0x0p+0         0x0p+0        
+  1   0x1.cp-7     0x1.cp-13      0x0p+0         0x0p+0         0x0p+0        
+  2   0x1.cp-7     0x1.cp-12      0x0p+0         0x0p+0         0x0p+0        
+  [PASS] scan references exact in 32/32 cases
+  [PASS] M1 matches 32/32 cases
+  [PASS] M1 wins all 10 distinguishing cases (M2 matches 22/32 overall)
+
+test6: 6 checks, 6 passed, 0 failed -> PASS

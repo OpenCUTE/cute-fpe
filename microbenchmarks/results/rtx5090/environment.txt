@@ -1,0 +1,6 @@
+date:   2026-10-31T11:14:38Z
+host:   Linux 6.8.0-138-generic x86_64
+gpu:    NVIDIA GeForce RTX 5090, 590.44.01, 12.0
+nvcc:   Cuda compilation tools, release 13.1, V13.1.80
+nvcc:   Build cuda_13.1.r13.1/compiler.36836380_0
+flags:  -O2 -std=c++17 -gencode arch=compute_120a,code=sm_120a

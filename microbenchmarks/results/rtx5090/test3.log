@@ -1,0 +1,42 @@
+==== test3: hidden accumulation precision ====
+device: NVIDIA GeForce RTX 5090 (sm_120), driver API 13010, runtime 13010
+
+-- method 1.1
+  I1  TF32                 first D = 0 at t = -4
+  [PASS] I1  TF32                 p = 25 (expected 25)
+  I2  FP16                 first D = 0 at t = -4
+  [PASS] I2  FP16                 p = 25 (expected 25)
+  I3  BF16                 first D = 0 at t = -4
+  [PASS] I3  BF16                 p = 25 (expected 25)
+  I4  f8f6f4 E5M2          first D = 0 at t = -4
+  [PASS] I4  f8f6f4 E5M2          p = 25 (expected 25)
+  I5  f8f6f4 E4M3          first D = 0 at t = -4
+  [PASS] I5  f8f6f4 E4M3          p = 25 (expected 25)
+  I9  mxf8f6f4 1X E5M2     first D = 0 at t = -4
+  [PASS] I9  mxf8f6f4 1X E5M2     p = 25 (expected 25)
+  I10 mxf8f6f4 1X E4M3     first D = 0 at t = -4
+  [PASS] I10 mxf8f6f4 1X E4M3     p = 25 (expected 25)
+
+-- method 2
+  I6  f8f6f4 E3M2          P = 2^4, first D = 0 at C = 2^-22
+  [PASS] I6  f8f6f4 E3M2          p = 25 (expected 25)
+  I7  f8f6f4 E2M3          P = 2^4, first D = 0 at C = 2^-22
+  [PASS] I7  f8f6f4 E2M3          p = 25 (expected 25)
+  I8  f8f6f4 E2M1          P = 2^4, first D = 0 at C = 2^-22
+  [PASS] I8  f8f6f4 E2M1          p = 25 (expected 25)
+  I11 mxf8f6f4 1X E3M2     P = 2^24, first D = 0 at C = 2^-2
+  [PASS] I11 mxf8f6f4 1X E3M2     p = 25 (expected 25)
+  I12 mxf8f6f4 1X E2M3     P = 2^24, first D = 0 at C = 2^-2
+  [PASS] I12 mxf8f6f4 1X E2M3     p = 25 (expected 25)
+  I13 mxf8f6f4 1X E2M1     P = 2^24, first D = 0 at C = 2^-2
+  [PASS] I13 mxf8f6f4 1X E2M1     p = 25 (expected 25)
+
+-- method 3.1 MXFP4 (I14): A[0][0] = 1, A[0][63] = -1, B = 1, C = 1, both A scales 2^Sa
+  I14 mxf4 2X              first D = 0 at Sa = 36
+  [PASS] I14 mxf4 2X              p = 35 (expected 35)
+
+-- method 3.2 NVFP4 (I16): C = 2^24 cancelled by group 4, small product 2^(n-7) in group 1
+  I16 mxf4nvf4 4X UE4M3    first D = 0 at n = -5
+  [PASS] I16 mxf4nvf4 4X UE4M3    p = 35 (expected 35)
+
+test3: 15 checks, 15 passed, 0 failed -> PASS

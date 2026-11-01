@@ -1,0 +1,88 @@
+==== test1: output uniformity ====
+device: NVIDIA GeForce RTX 5090 (sm_120), driver API 13010, runtime 13010
+
+rounds per distribution: 1000000 (distribution 1 = raw random bits, distribution 2 = finite moderate values)
+
+  instruction              dist   bad rounds   D00 != C     D00 is NaN  
+  [PASS] I1  TF32                 write-back check: D[0][1] = 1, D[0][0] = 0
+  I1  TF32                 1      0            974745       64030       
+  [PASS] I1  TF32                 distribution 1: all 128 D elements equal D[0][0] in 1000000/1000000 rounds
+  I1  TF32                 2      0            1000000      0           
+  [PASS] I1  TF32                 distribution 2: all 128 D elements equal D[0][0] in 1000000/1000000 rounds
+  [PASS] I2  FP16                 write-back check: D[0][1] = 1, D[0][0] = 0
+  I2  FP16                 1      0            885390       638739      
+  [PASS] I2  FP16                 distribution 1: all 128 D elements equal D[0][0] in 1000000/1000000 rounds
+  I2  FP16                 2      0            1000000      0           
+  [PASS] I2  FP16                 distribution 2: all 128 D elements equal D[0][0] in 1000000/1000000 rounds
+  [PASS] I3  BF16                 write-back check: D[0][1] = 1, D[0][0] = 0
+  I3  BF16                 1      0            997240       120681      
+  [PASS] I3  BF16                 distribution 1: all 128 D elements equal D[0][0] in 1000000/1000000 rounds
+  I3  BF16                 2      0            1000000      0           
+  [PASS] I3  BF16                 distribution 2: all 128 D elements equal D[0][0] in 1000000/1000000 rounds
+  [PASS] I4  f8f6f4 E5M2          write-back check: D[0][1] = 1, D[0][0] = 0
+  I4  f8f6f4 E5M2          1      0            959672       792896      
+  [PASS] I4  f8f6f4 E5M2          distribution 1: all 128 D elements equal D[0][0] in 1000000/1000000 rounds
+  I4  f8f6f4 E5M2          2      0            1000000      0           
+  [PASS] I4  f8f6f4 E5M2          distribution 2: all 128 D elements equal D[0][0] in 1000000/1000000 rounds
+  [PASS] I5  f8f6f4 E4M3          write-back check: D[0][1] = 1, D[0][0] = 0
+  I5  f8f6f4 E4M3          1      0            788410       397183      
+  [PASS] I5  f8f6f4 E4M3          distribution 1: all 128 D elements equal D[0][0] in 1000000/1000000 rounds
+  I5  f8f6f4 E4M3          2      0            1000000      0           
+  [PASS] I5  f8f6f4 E4M3          distribution 2: all 128 D elements equal D[0][0] in 1000000/1000000 rounds
+  [PASS] I6  f8f6f4 E3M2          write-back check: D[0][1] = 1, D[0][0] = 0
+  I6  f8f6f4 E3M2          1      0            626547       3884        
+  [PASS] I6  f8f6f4 E3M2          distribution 1: all 128 D elements equal D[0][0] in 1000000/1000000 rounds
+  I6  f8f6f4 E3M2          2      0            999995       0           
+  [PASS] I6  f8f6f4 E3M2          distribution 2: all 128 D elements equal D[0][0] in 1000000/1000000 rounds
+  [PASS] I7  f8f6f4 E2M3          write-back check: D[0][1] = 1, D[0][0] = 0
+  I7  f8f6f4 E2M3          1      0            614691       3974        
+  [PASS] I7  f8f6f4 E2M3          distribution 1: all 128 D elements equal D[0][0] in 1000000/1000000 rounds
+  I7  f8f6f4 E2M3          2      0            999963       0           
+  [PASS] I7  f8f6f4 E2M3          distribution 2: all 128 D elements equal D[0][0] in 1000000/1000000 rounds
+  [PASS] I8  f8f6f4 E2M1          write-back check: D[0][1] = 1, D[0][0] = 0
+  I8  f8f6f4 E2M1          1      0            613117       3893        
+  [PASS] I8  f8f6f4 E2M1          distribution 1: all 128 D elements equal D[0][0] in 1000000/1000000 rounds
+  I8  f8f6f4 E2M1          2      0            998988       0           
+  [PASS] I8  f8f6f4 E2M1          distribution 2: all 128 D elements equal D[0][0] in 1000000/1000000 rounds
+  [PASS] I9  mxf8f6f4 1X E5M2     write-back check: D[0][1] = 1, D[0][0] = 0
+  I9  mxf8f6f4 1X E5M2     1      0            953354       794503      
+  [PASS] I9  mxf8f6f4 1X E5M2     distribution 1: all 128 D elements equal D[0][0] in 1000000/1000000 rounds
+  I9  mxf8f6f4 1X E5M2     2      0            1000000      0           
+  [PASS] I9  mxf8f6f4 1X E5M2     distribution 2: all 128 D elements equal D[0][0] in 1000000/1000000 rounds
+  [PASS] I10 mxf8f6f4 1X E4M3     write-back check: D[0][1] = 1, D[0][0] = 0
+  I10 mxf8f6f4 1X E4M3     1      0            767144       401529      
+  [PASS] I10 mxf8f6f4 1X E4M3     distribution 1: all 128 D elements equal D[0][0] in 1000000/1000000 rounds
+  I10 mxf8f6f4 1X E4M3     2      0            1000000      0           
+  [PASS] I10 mxf8f6f4 1X E4M3     distribution 2: all 128 D elements equal D[0][0] in 1000000/1000000 rounds
+  [PASS] I11 mxf8f6f4 1X E3M2     write-back check: D[0][1] = 1, D[0][0] = 0
+  I11 mxf8f6f4 1X E3M2     1      0            597411       11619       
+  [PASS] I11 mxf8f6f4 1X E3M2     distribution 1: all 128 D elements equal D[0][0] in 1000000/1000000 rounds
+  I11 mxf8f6f4 1X E3M2     2      0            1000000      0           
+  [PASS] I11 mxf8f6f4 1X E3M2     distribution 2: all 128 D elements equal D[0][0] in 1000000/1000000 rounds
+  [PASS] I12 mxf8f6f4 1X E2M3     write-back check: D[0][1] = 1, D[0][0] = 0
+  I12 mxf8f6f4 1X E2M3     1      0            589502       11691       
+  [PASS] I12 mxf8f6f4 1X E2M3     distribution 1: all 128 D elements equal D[0][0] in 1000000/1000000 rounds
+  I12 mxf8f6f4 1X E2M3     2      0            999952       0           
+  [PASS] I12 mxf8f6f4 1X E2M3     distribution 2: all 128 D elements equal D[0][0] in 1000000/1000000 rounds
+  [PASS] I13 mxf8f6f4 1X E2M1     write-back check: D[0][1] = 1, D[0][0] = 0
+  I13 mxf8f6f4 1X E2M1     1      0            587970       11628       
+  [PASS] I13 mxf8f6f4 1X E2M1     distribution 1: all 128 D elements equal D[0][0] in 1000000/1000000 rounds
+  I13 mxf8f6f4 1X E2M1     2      0            998999       0           
+  [PASS] I13 mxf8f6f4 1X E2M1     distribution 2: all 128 D elements equal D[0][0] in 1000000/1000000 rounds
+  [PASS] I14 mxf4 2X              write-back check: D[0][1] = 1, D[0][0] = 0
+  I14 mxf4 2X              1      0            790050       19210       
+  [PASS] I14 mxf4 2X              distribution 1: all 128 D elements equal D[0][0] in 1000000/1000000 rounds
+  I14 mxf4 2X              2      0            999515       0           
+  [PASS] I14 mxf4 2X              distribution 2: all 128 D elements equal D[0][0] in 1000000/1000000 rounds
+  [PASS] I15 mxf4nvf4 2X UE8M0    write-back check: D[0][1] = 1, D[0][0] = 0
+  I15 mxf4nvf4 2X UE8M0    1      0            790067       19444       
+  [PASS] I15 mxf4nvf4 2X UE8M0    distribution 1: all 128 D elements equal D[0][0] in 1000000/1000000 rounds
+  I15 mxf4nvf4 2X UE8M0    2      0            999532       0           
+  [PASS] I15 mxf4nvf4 2X UE8M0    distribution 2: all 128 D elements equal D[0][0] in 1000000/1000000 rounds
+  [PASS] I16 mxf4nvf4 4X UE4M3    write-back check: D[0][1] = 1, D[0][0] = 0
+  I16 mxf4nvf4 4X UE4M3    1      0            686065       64326       
+  [PASS] I16 mxf4nvf4 4X UE4M3    distribution 1: all 128 D elements equal D[0][0] in 1000000/1000000 rounds
+  I16 mxf4nvf4 4X UE4M3    2      0            999996       0           
+  [PASS] I16 mxf4nvf4 4X UE4M3    distribution 2: all 128 D elements equal D[0][0] in 1000000/1000000 rounds
+
+test1: 48 checks, 48 passed, 0 failed -> PASS

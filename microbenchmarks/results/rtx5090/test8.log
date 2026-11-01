@@ -1,0 +1,32 @@
+==== test8: structural zero vs cancellation to zero ====
+device: NVIDIA GeForce RTX 5090 (sm_120), driver API 13010, runtime 13010
+
+-- (1) no scale (I1-I8): X = 2^e (largest power of two, e <= 20), C = 2^(2e-30)
+  [PASS] I1  TF32                 X = 2^20 C = 0x1p+10   Z1 = 0x1p+10   Z2 = 0x1p+10   Z3 = 0x1p+10   N = 0x0p+0
+  [PASS] I2  FP16                 X = 2^15 C = 0x1p+0    Z1 = 0x1p+0    Z2 = 0x1p+0    Z3 = 0x1p+0    N = 0x0p+0
+  [PASS] I3  BF16                 X = 2^20 C = 0x1p+10   Z1 = 0x1p+10   Z2 = 0x1p+10   Z3 = 0x1p+10   N = 0x0p+0
+  [PASS] I4  f8f6f4 E5M2          X = 2^15 C = 0x1p+0    Z1 = 0x1p+0    Z2 = 0x1p+0    Z3 = 0x1p+0    N = 0x0p+0
+  [PASS] I5  f8f6f4 E4M3          X = 2^8  C = 0x1p-14   Z1 = 0x1p-14   Z2 = 0x1p-14   Z3 = 0x1p-14   N = 0x0p+0
+  [PASS] I6  f8f6f4 E3M2          X = 2^4  C = 0x1p-22   Z1 = 0x1p-22   Z2 = 0x1p-22   Z3 = 0x1p-22   N = 0x0p+0
+  [PASS] I7  f8f6f4 E2M3          X = 2^2  C = 0x1p-26   Z1 = 0x1p-26   Z2 = 0x1p-26   Z3 = 0x1p-26   N = 0x0p+0
+  [PASS] I8  f8f6f4 E2M1          X = 2^2  C = 0x1p-26   Z1 = 0x1p-26   Z2 = 0x1p-26   Z3 = 0x1p-26   N = 0x0p+0
+
+-- (2) UE8M0 scale (I9-I15): scale_A = 2^40, scale_B = 1, C = 1
+  [PASS] I9  mxf8f6f4 1X E5M2     scale_A = 0xA7A7A7A7  Z = 0x1p+0  Zmix = 0x1p+0  N = 0x0p+0  control = 0x1p+40
+  [PASS] I10 mxf8f6f4 1X E4M3     scale_A = 0xA7A7A7A7  Z = 0x1p+0  Zmix = 0x1p+0  N = 0x0p+0  control = 0x1p+40
+  [PASS] I11 mxf8f6f4 1X E3M2     scale_A = 0xA7A7A7A7  Z = 0x1p+0  Zmix = 0x1p+0  N = 0x0p+0  control = 0x1p+40
+  [PASS] I12 mxf8f6f4 1X E2M3     scale_A = 0xA7A7A7A7  Z = 0x1p+0  Zmix = 0x1p+0  N = 0x0p+0  control = 0x1p+40
+  [PASS] I13 mxf8f6f4 1X E2M1     scale_A = 0xA7A7A7A7  Z = 0x1p+0  Zmix = 0x1p+0  N = 0x0p+0  control = 0x1p+40
+  [PASS] I14 mxf4 2X              scale_A = 0xA7A7A7A7  Z = 0x1p+0  Zmix = 0x1p+0  N = 0x0p+0  control = 0x1p+40
+  [PASS] I15 mxf4nvf4 2X UE8M0    scale_A = 0xA7A7A7A7  Z = 0x1p+0  Zmix = 0x1p+0  N = 0x0p+0  control = 0x1p+40
+
+-- (3) NVFP4 (I16): group 1 only, C = 2^-40
+  [PASS] R  reference: a = b = 0                      scale_A = 0x38383878 scale_B = 0x38383878  D = 0x1p-40 (expected 0x1p-40)
+  [PASS] Z  structural zero: a = 1, b = 0             scale_A = 0x38383878 scale_B = 0x38383878  D = 0x1p-40 (expected 0x1p-40)
+  [PASS] N  cancellation: 1 + (-1)                    scale_A = 0x38383878 scale_B = 0x38383878  D = 0x0p+0 (expected 0x0p+0)
+  [PASS] S1 a = b = 4, scale_A0 = 0x00                scale_A = 0x38383800 scale_B = 0x38383878  D = 0x1p-40 (expected 0x1p-40)
+  [PASS] S2 a = b = 4, scale_A0 = 0x80                scale_A = 0x38383880 scale_B = 0x38383878  D = 0x1p-40 (expected 0x1p-40)
+  [PASS] S3 a = b = 4, scale_B0 = 0x00                scale_A = 0x38383878 scale_B = 0x38383800  D = 0x1p-40 (expected 0x1p-40)
+  [PASS] control a = b = 4, scale_A0 = 0x01 (2^-9)    scale_A = 0x38383801 scale_B = 0x38383878  D = 0x1p+7 (expected 0x1p+7)
+
+test8: 22 checks, 22 passed, 0 failed -> PASS

@@ -1,0 +1,21 @@
+==== selfcheck: fragment layout and scale mapping ====
+device: NVIDIA GeForce RTX 5090 (sm_120), driver API 13010, runtime 13010
+
+  [PASS] I1  TF32                 38400/38400 elements match the exact reference
+  [PASS] I2  FP16                 38400/38400 elements match the exact reference
+  [PASS] I3  BF16                 38400/38400 elements match the exact reference
+  [PASS] I4  f8f6f4 E5M2          38400/38400 elements match the exact reference
+  [PASS] I5  f8f6f4 E4M3          38400/38400 elements match the exact reference
+  [PASS] I6  f8f6f4 E3M2          38400/38400 elements match the exact reference
+  [PASS] I7  f8f6f4 E2M3          38400/38400 elements match the exact reference
+  [PASS] I8  f8f6f4 E2M1          38400/38400 elements match the exact reference
+  [PASS] I9  mxf8f6f4 1X E5M2     38400/38400 elements match the exact reference
+  [PASS] I10 mxf8f6f4 1X E4M3     38400/38400 elements match the exact reference
+  [PASS] I11 mxf8f6f4 1X E3M2     38400/38400 elements match the exact reference
+  [PASS] I12 mxf8f6f4 1X E2M3     38400/38400 elements match the exact reference
+  [PASS] I13 mxf8f6f4 1X E2M1     38400/38400 elements match the exact reference
+  [PASS] I14 mxf4 2X              38400/38400 elements match the exact reference
+  [PASS] I15 mxf4nvf4 2X UE8M0    38400/38400 elements match the exact reference
+  [PASS] I16 mxf4nvf4 4X UE4M3    38400/38400 elements match the exact reference
+
+selfcheck: 16 checks, 16 passed, 0 failed -> PASS

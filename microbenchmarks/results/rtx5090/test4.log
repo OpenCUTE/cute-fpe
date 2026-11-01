@@ -1,0 +1,53 @@
+==== test4: FP32 output rounding ====
+device: NVIDIA GeForce RTX 5090 (sm_120), driver API 13010, runtime 13010
+
+  I1  TF32                 S1-S4 = [8388608 8388608 -8388608 -8388608] -> RZ    T1-T4 = [8388608 8388609 -8388608 -8388609] (reference only)
+  [PASS] I1  TF32                 controls P1-P8 return the exact product
+  [PASS] I1  TF32                 stage 1 classifies as RZ (expected RZ)
+  I2  FP16                 S1-S4 = [8388608 8388608 -8388608 -8388608] -> RZ    T1-T4 = [8388608 8388609 -8388608 -8388609] (reference only)
+  [PASS] I2  FP16                 controls P1-P8 return the exact product
+  [PASS] I2  FP16                 stage 1 classifies as RZ (expected RZ)
+  I3  BF16                 S1-S4 = [8388608 8388608 -8388608 -8388608] -> RZ    T1-T4 = [8388608 8388609 -8388608 -8388609] (reference only)
+  [PASS] I3  BF16                 controls P1-P8 return the exact product
+  [PASS] I3  BF16                 stage 1 classifies as RZ (expected RZ)
+  I4  f8f6f4 E5M2          S1-S4 = [8388608 8388608 -8388608 -8388608] -> RZ    T1-T4 = [8388608 8388609 -8388608 -8388609] (reference only)
+  [PASS] I4  f8f6f4 E5M2          controls P1-P8 return the exact product
+  [PASS] I4  f8f6f4 E5M2          stage 1 classifies as RZ (expected RZ)
+  I5  f8f6f4 E4M3          S1-S4 = [8388608 8388608 -8388608 -8388608] -> RZ    T1-T4 = [8388608 8388609 -8388608 -8388609] (reference only)
+  [PASS] I5  f8f6f4 E4M3          controls P1-P8 return the exact product
+  [PASS] I5  f8f6f4 E4M3          stage 1 classifies as RZ (expected RZ)
+  I6  f8f6f4 E3M2          S1-S4 = [8388608 8388608 -8388608 -8388608] -> RZ    T1-T4 = [8388608 8388609 -8388608 -8388609] (reference only)
+  [PASS] I6  f8f6f4 E3M2          controls P1-P8 return the exact product
+  [PASS] I6  f8f6f4 E3M2          stage 1 classifies as RZ (expected RZ)
+  I7  f8f6f4 E2M3          S1-S4 = [8388608 8388608 -8388608 -8388608] -> RZ    T1-T4 = [8388608 8388609 -8388608 -8388609] (reference only)
+  [PASS] I7  f8f6f4 E2M3          controls P1-P8 return the exact product
+  [PASS] I7  f8f6f4 E2M3          stage 1 classifies as RZ (expected RZ)
+  I8  f8f6f4 E2M1          S1-S4 = [8388608 8388608 -8388608 -8388608] -> RZ    T1-T4 = [8388608 8388609 -8388608 -8388609] (reference only)
+  [PASS] I8  f8f6f4 E2M1          controls P1-P8 return the exact product
+  [PASS] I8  f8f6f4 E2M1          stage 1 classifies as RZ (expected RZ)
+  I9  mxf8f6f4 1X E5M2     S1-S4 = [8388608 8388608 -8388608 -8388608] -> RZ    T1-T4 = [8388608 8388609 -8388608 -8388609] (reference only)
+  [PASS] I9  mxf8f6f4 1X E5M2     controls P1-P8 return the exact product
+  [PASS] I9  mxf8f6f4 1X E5M2     stage 1 classifies as RZ (expected RZ)
+  I10 mxf8f6f4 1X E4M3     S1-S4 = [8388608 8388608 -8388608 -8388608] -> RZ    T1-T4 = [8388608 8388609 -8388608 -8388609] (reference only)
+  [PASS] I10 mxf8f6f4 1X E4M3     controls P1-P8 return the exact product
+  [PASS] I10 mxf8f6f4 1X E4M3     stage 1 classifies as RZ (expected RZ)
+  I11 mxf8f6f4 1X E3M2     S1-S4 = [8388608 8388608 -8388608 -8388608] -> RZ    T1-T4 = [8388608 8388609 -8388608 -8388609] (reference only)
+  [PASS] I11 mxf8f6f4 1X E3M2     controls P1-P8 return the exact product
+  [PASS] I11 mxf8f6f4 1X E3M2     stage 1 classifies as RZ (expected RZ)
+  I12 mxf8f6f4 1X E2M3     S1-S4 = [8388608 8388608 -8388608 -8388608] -> RZ    T1-T4 = [8388608 8388609 -8388608 -8388609] (reference only)
+  [PASS] I12 mxf8f6f4 1X E2M3     controls P1-P8 return the exact product
+  [PASS] I12 mxf8f6f4 1X E2M3     stage 1 classifies as RZ (expected RZ)
+  I13 mxf8f6f4 1X E2M1     S1-S4 = [8388608 8388608 -8388608 -8388608] -> RZ    T1-T4 = [8388608 8388609 -8388608 -8388609] (reference only)
+  [PASS] I13 mxf8f6f4 1X E2M1     controls P1-P8 return the exact product
+  [PASS] I13 mxf8f6f4 1X E2M1     stage 1 classifies as RZ (expected RZ)
+  I14 mxf4 2X              S1-S4 = [8388608 8388608 -8388608 -8388608] -> RZ    T1-T4 = [8388608 8388609 -8388608 -8388609] (reference only)
+  [PASS] I14 mxf4 2X              controls P1-P8 return the exact product
+  [PASS] I14 mxf4 2X              stage 1 classifies as RZ (expected RZ)
+  I15 mxf4nvf4 2X UE8M0    S1-S4 = [8388608 8388608 -8388608 -8388608] -> RZ    T1-T4 = [8388608 8388609 -8388608 -8388609] (reference only)
+  [PASS] I15 mxf4nvf4 2X UE8M0    controls P1-P8 return the exact product
+  [PASS] I15 mxf4nvf4 2X UE8M0    stage 1 classifies as RZ (expected RZ)
+  I16 mxf4nvf4 4X UE4M3    S1-S4 = [8388608 8388608 -8388608 -8388608] -> RZ    T1-T4 = [8388608 8388609 -8388608 -8388609] (reference only)
+  [PASS] I16 mxf4nvf4 4X UE4M3    controls P1-P8 return the exact product
+  [PASS] I16 mxf4nvf4 4X UE4M3    stage 1 classifies as RZ (expected RZ)
+
+test4: 32 checks, 32 passed, 0 failed -> PASS

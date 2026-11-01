@@ -1,0 +1,15 @@
+==== test9: FP4 low-bit perturbation vs FP6 E2M3 ====
+device: NVIDIA GeForce RTX 5090 (sm_120), driver API 13010, runtime 13010
+
+  I8  f8f6f4 E2M1          vs I7  f8f6f4 E2M3          [self-check] rounds = 2000  D1 != D2: 0  D1 != D3: 0
+  [PASS] I8  f8f6f4 E2M1          self-check (r2 = 0): D1, D2, D3 bit-identical in all 2000 rounds
+  I8  f8f6f4 E2M1          vs I7  f8f6f4 E2M3          [main]       rounds = 100000  D1 != D2: 0  D1 != D3: 100000
+  [PASS] I8  f8f6f4 E2M1          D1 == D2 in 100000/100000 rounds
+  [PASS] I8  f8f6f4 E2M1          D1 != D3 in 100000/100000 rounds -> H2 (shared 6-bit decoder)
+  I13 mxf8f6f4 1X E2M1     vs I12 mxf8f6f4 1X E2M3     [self-check] rounds = 2000  D1 != D2: 0  D1 != D3: 0
+  [PASS] I13 mxf8f6f4 1X E2M1     self-check (r2 = 0): D1, D2, D3 bit-identical in all 2000 rounds
+  I13 mxf8f6f4 1X E2M1     vs I12 mxf8f6f4 1X E2M3     [main]       rounds = 100000  D1 != D2: 0  D1 != D3: 100000
+  [PASS] I13 mxf8f6f4 1X E2M1     D1 == D2 in 100000/100000 rounds
+  [PASS] I13 mxf8f6f4 1X E2M1     D1 != D3 in 100000/100000 rounds -> H2 (shared 6-bit decoder)
+
+test9: 6 checks, 6 passed, 0 failed -> PASS

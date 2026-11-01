@@ -1,0 +1,49 @@
+==== test2: summation order and grouping ====
+device: NVIDIA GeForce RTX 5090 (sm_120), driver API 13010, runtime 13010
+
+-- method 1
+  I1  TF32                 K=8  1.1: first D != C at C = 2^25 (D = 0x1.000004p+25) -> g = 4;  1.2: D = 0 in 56/56 pairs
+  [PASS] I1  TF32                 1.1 hits at C = 2^25 with D = 2^25 + K (set by p = 25, not by grouping)
+  [PASS] I1  TF32                 1.2 every pair gives D = 0 -> fully fused summation
+  I2  FP16                 K=16 1.1: first D != C at C = 2^25 (D = 0x1.000008p+25) -> g = 4;  1.2: D = 0 in 240/240 pairs
+  [PASS] I2  FP16                 1.1 hits at C = 2^25 with D = 2^25 + K (set by p = 25, not by grouping)
+  [PASS] I2  FP16                 1.2 every pair gives D = 0 -> fully fused summation
+  I3  BF16                 K=16 1.1: first D != C at C = 2^25 (D = 0x1.000008p+25) -> g = 4;  1.2: D = 0 in 240/240 pairs
+  [PASS] I3  BF16                 1.1 hits at C = 2^25 with D = 2^25 + K (set by p = 25, not by grouping)
+  [PASS] I3  BF16                 1.2 every pair gives D = 0 -> fully fused summation
+  I4  f8f6f4 E5M2          K=32 1.1: first D != C at C = 2^25 (D = 0x1.00001p+25) -> g = 4;  1.2: D = 0 in 992/992 pairs
+  [PASS] I4  f8f6f4 E5M2          1.1 hits at C = 2^25 with D = 2^25 + K (set by p = 25, not by grouping)
+  [PASS] I4  f8f6f4 E5M2          1.2 every pair gives D = 0 -> fully fused summation
+  I5  f8f6f4 E4M3          K=32 1.1: first D != C at C = 2^25 (D = 0x1.00001p+25) -> g = 4;  1.2: D = 0 in 992/992 pairs
+  [PASS] I5  f8f6f4 E4M3          1.1 hits at C = 2^25 with D = 2^25 + K (set by p = 25, not by grouping)
+  [PASS] I5  f8f6f4 E4M3          1.2 every pair gives D = 0 -> fully fused summation
+  I9  mxf8f6f4 1X E5M2     K=32 1.1: first D != C at C = 2^25 (D = 0x1.00001p+25) -> g = 4;  1.2: D = 0 in 992/992 pairs
+  [PASS] I9  mxf8f6f4 1X E5M2     1.1 hits at C = 2^25 with D = 2^25 + K (set by p = 25, not by grouping)
+  [PASS] I9  mxf8f6f4 1X E5M2     1.2 every pair gives D = 0 -> fully fused summation
+  I10 mxf8f6f4 1X E4M3     K=32 1.1: first D != C at C = 2^25 (D = 0x1.00001p+25) -> g = 4;  1.2: D = 0 in 992/992 pairs
+  [PASS] I10 mxf8f6f4 1X E4M3     1.1 hits at C = 2^25 with D = 2^25 + K (set by p = 25, not by grouping)
+  [PASS] I10 mxf8f6f4 1X E4M3     1.2 every pair gives D = 0 -> fully fused summation
+
+-- method 2
+  [PASS] I6  f8f6f4 E3M2          D = 2^-24 in 992/992 pairs -> fully fused summation
+  [PASS] I7  f8f6f4 E2M3          D = 2^-24 in 992/992 pairs -> fully fused summation
+  [PASS] I8  f8f6f4 E2M1          D = 2^-24 in 992/992 pairs -> fully fused summation
+  [PASS] I11 mxf8f6f4 1X E3M2     D = 2^-24 in 992/992 pairs -> fully fused summation
+  [PASS] I12 mxf8f6f4 1X E2M3     D = 2^-24 in 992/992 pairs -> fully fused summation
+  [PASS] I13 mxf8f6f4 1X E2M1     D = 2^-24 in 992/992 pairs -> fully fused summation
+
+-- method 3
+  I14 mxf4 2X              pair in k=0..1, scale 2^36, probes in k=32..63: same block of 16 -> D=2: 240, D=0: 0 | across blocks -> D=2: 0, D=0: 256 | other: 0
+  I14 mxf4 2X              pair in k=0..1, scale 2^37, probes in k=32..63: same block of 16 -> D=2: 0, D=0: 240 | across blocks -> D=2: 0, D=0: 256 | other: 0
+  I14 mxf4 2X              pair in k=32..33, scale 2^36, probes in k=0..31: same block of 16 -> D=2: 240, D=0: 0 | across blocks -> D=2: 0, D=0: 256 | other: 0
+  [PASS] I14 mxf4 2X              scale 2^36: D = 2 iff both probes are in the same block of 16
+  [PASS] I14 mxf4 2X              control scale 2^37: D = 0 for all 496 pairs
+  [PASS] I14 mxf4 2X              reversed (pair in k=32..33, probes in k=0..31): same result
+  I15 mxf4nvf4 2X UE8M0    pair in k=0..1, scale 2^36, probes in k=32..63: same block of 16 -> D=2: 240, D=0: 0 | across blocks -> D=2: 0, D=0: 256 | other: 0
+  I15 mxf4nvf4 2X UE8M0    pair in k=0..1, scale 2^37, probes in k=32..63: same block of 16 -> D=2: 0, D=0: 240 | across blocks -> D=2: 0, D=0: 256 | other: 0
+  I15 mxf4nvf4 2X UE8M0    pair in k=32..33, scale 2^36, probes in k=0..31: same block of 16 -> D=2: 240, D=0: 0 | across blocks -> D=2: 0, D=0: 256 | other: 0
+  [PASS] I15 mxf4nvf4 2X UE8M0    scale 2^36: D = 2 iff both probes are in the same block of 16
+  [PASS] I15 mxf4nvf4 2X UE8M0    control scale 2^37: D = 0 for all 496 pairs
+  [PASS] I15 mxf4nvf4 2X UE8M0    reversed (pair in k=32..33, probes in k=0..31): same result
+
+test2: 26 checks, 26 passed, 0 failed -> PASS

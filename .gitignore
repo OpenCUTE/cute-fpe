@@ -1,20 +1,12 @@
-target/
-/.bsp/
-/.idea/
-/test_run_dir/
-*.cmd
-*.in
-*.out
-*#
-*.o
-*.#*
-fpe/logs
-fpe/obj_dir
-fpe/project
-fpe/target
-fpe/top.v
-*.txt
-ccode/gendata
-*.txt
-**.metals
-**.vscode
+# Local microbenchmark builds and large raw runs.
+microbenchmarks/build/
+microbenchmarks/runs/
+microbenchmarks/tests/**/.build/
+**/__pycache__/
+*.pyc
+
+# macOS Finder metadata.
+.DS_Store
+
+# Output of cmodel/run_rtl_nvidia_256b_regression.sh.
+cmodel/rtl_nvidia_256b_*/

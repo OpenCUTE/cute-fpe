@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "CUTE-TensorCore executable mode manifest",
+  "type": "object",
+  "required": ["schema_version", "modes"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "modes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id", "paper_format", "a_encoding", "b_encoding",
+          "a_element_bits", "b_element_bits", "instruction_kind",
+          "shape", "k", "input_bits", "accumulator", "cmodel_dtype",
+          "arithmetic_path", "gpu_supported", "suites"
+        ]
+      }
+    }
+  }
+}
