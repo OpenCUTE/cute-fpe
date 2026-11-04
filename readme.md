@@ -31,3 +31,9 @@ make run DTYPE=1 VEC_COUNT=1000                  # main RTL, one dtype
 make run RTL=mul_reduce DTYPE=20 VEC_COUNT=1000  # one ablation variant
 ./scripts/run_regression.sh                      # all trees x dtypes 0-21
 ```
+
+## Publications
+
+### ICCD 2026: CUTE-TensorCore: A Bit-Accurate and Hardware-Efficient Tensor Core Design Aligned with NVIDIA Blackwell GPU Arithmetic
+
+This paper presents CUTE-TensorCore, a bit-accurate and hardware-efficient Tensor Core RTL design aligned with NVIDIA Blackwell arithmetic. It characterizes RTX 5090 Tensor Core behavior, builds a bit-accurate reference model, and implements a configurable design that supports 14 operand formats through a shared datapath.
